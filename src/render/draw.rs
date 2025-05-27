@@ -1,8 +1,26 @@
-use bevy::{prelude::*, render::{render_phase::{SetItemPipeline, PhaseItem, RenderCommand, TrackedRenderPass, RenderCommandResult}, render_asset::RenderAssets, mesh::GpuBufferInfo}, pbr::{SetMeshViewBindGroup, SetMeshBindGroup, RenderMeshInstances}, ecs::system::{lifetimeless::{SRes, Read}, SystemParamItem}};
+use bevy::{
+    ecs::system::{
+        lifetimeless::{Read, SRes},
+        SystemParamItem,
+    },
+    pbr::{RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup},
+    prelude::*,
+    render::{
+        mesh::GpuBufferInfo,
+        render_asset::RenderAssets,
+        render_phase::{
+            PhaseItem, RenderCommand, RenderCommandResult, SetItemPipeline, TrackedRenderPass,
+        },
+    },
+};
 
-use crate::grass::{wind::GrassWind, chunk::{RenderGrassChunks, GrassLOD}, grass::{Grass, GrassLODMesh}};
+use crate::grass::{
+    chunk::{GrassLOD, RenderGrassChunks},
+    grass::{Grass, GrassLODMesh},
+    wind::GrassWind,
+};
 
-use super::{prepare::BufferBindGroup, instance::GrassChunkData};
+use super::{instance::GrassChunkData, prepare::BufferBindGroup};
 
 pub type DrawGrass = (
     SetItemPipeline,
@@ -56,15 +74,19 @@ impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetWindBindGroup<I> {
         RenderCommandResult::Success
     }
 }
- 
+
 pub struct DrawGrassInstanced;
 impl<P: PhaseItem> RenderCommand<P> for DrawGrassInstanced {
-    type Param = (SRes<RenderAssets<Mesh>>, SRes<RenderMeshInstances>, SRes<RenderAssets<GrassChunkData>>);
+    type Param = (
+        SRes<RenderAssets<Mesh>>,
+        SRes<RenderMeshInstances>,
+        SRes<RenderAssets<GrassChunkData>>,
+    );
     type ViewWorldQuery = ();
     type ItemWorldQuery = (Read<GrassLODMesh>, Read<RenderGrassChunks>);
 
     #[inline]
-    fn render<'w>( 
+    fn render<'w>(
         item: &P,
         _view: (),
         (lod, chunks): (&'w GrassLODMesh, &'w RenderGrassChunks),
@@ -81,7 +103,7 @@ impl<P: PhaseItem> RenderCommand<P> for DrawGrassInstanced {
             Some(gpu_mesh) => gpu_mesh,
             None => return RenderCommandResult::Failure,
         };
-        
+
         let gpu_mesh_low = if let Some(lod) = &lod.mesh_handle {
             match meshes.get(lod) {
                 Some(gpu_mesh) => gpu_mesh,
@@ -121,7 +143,7 @@ impl<P: PhaseItem> RenderCommand<P> for DrawGrassInstanced {
                 }
             }
         }
-        
+
         RenderCommandResult::Success
     }
 }

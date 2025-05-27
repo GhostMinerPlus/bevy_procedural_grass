@@ -1,4 +1,17 @@
-use bevy::{prelude::*, pbr::{MeshPipeline, MeshPipelineKey}, render::{render_resource::{BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, ShaderStages, BindingType, BufferBindingType, SpecializedMeshPipeline, RenderPipelineDescriptor, SpecializedMeshPipelineError, VertexBufferLayout, VertexStepMode, VertexAttribute, VertexFormat, TextureSampleType, TextureViewDimension}, renderer::RenderDevice, mesh::MeshVertexBufferLayout}};
+use bevy::{
+    pbr::{MeshPipeline, MeshPipelineKey},
+    prelude::*,
+    render::{
+        mesh::MeshVertexBufferLayout,
+        render_resource::{
+            BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType,
+            BufferBindingType, RenderPipelineDescriptor, ShaderStages, SpecializedMeshPipeline,
+            SpecializedMeshPipelineError, TextureSampleType, TextureViewDimension, VertexAttribute,
+            VertexBufferLayout, VertexFormat, VertexStepMode,
+        },
+        renderer::RenderDevice,
+    },
+};
 
 use crate::GRASS_SHADER_HANDLE;
 
@@ -40,8 +53,8 @@ impl FromWorld for GrassPipeline {
                         min_binding_size: None,
                     },
                     count: None,
-                }
-            ]
+                },
+            ],
         });
 
         let wind_layout = render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
@@ -67,7 +80,7 @@ impl FromWorld for GrassPipeline {
                     },
                     count: None,
                 },
-            ]
+            ],
         });
 
         GrassPipeline {

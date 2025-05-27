@@ -1,4 +1,7 @@
-use bevy::render::{mesh::{Mesh, Indices}, render_resource::PrimitiveTopology};
+use bevy::render::{
+    mesh::{Indices, Mesh},
+    render_resource::PrimitiveTopology,
+};
 
 pub struct GrassMesh;
 

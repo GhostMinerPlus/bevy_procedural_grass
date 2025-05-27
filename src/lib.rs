@@ -1,20 +1,34 @@
-use bevy::{prelude::*, render::{render_asset::RenderAssetPlugin, extract_component::ExtractComponentPlugin, RenderApp, render_resource::SpecializedMeshPipelines, Render, render_phase::AddRenderCommand, RenderSet, extract_resource::ExtractResourcePlugin}, core_pipeline::core_3d::Opaque3d, asset::load_internal_asset};
+use bevy::{
+    asset::load_internal_asset,
+    core_pipeline::core_3d::Opaque3d,
+    prelude::*,
+    render::{
+        extract_component::ExtractComponentPlugin, extract_resource::ExtractResourcePlugin,
+        render_asset::RenderAssetPlugin, render_phase::AddRenderCommand,
+        render_resource::SpecializedMeshPipelines, Render, RenderApp, RenderSet,
+    },
+};
 
-use grass::{chunk::GrassChunks, grass::{Grass, GrassLODMesh}, wind::GrassWind, config::GrassConfig};
-use render::{instance::GrassChunkData, pipeline::GrassPipeline, draw::DrawGrass};
+use grass::{
+    chunk::GrassChunks,
+    config::GrassConfig,
+    grass::{Grass, GrassLODMesh},
+    wind::GrassWind,
+};
+use render::{draw::DrawGrass, instance::GrassChunkData, pipeline::GrassPipeline};
 
 pub mod grass;
 mod render;
 mod util;
 
 pub mod prelude {
-    pub use crate::ProceduralGrassPlugin;
     pub use crate::grass::{
-        grass::{GrassBundle, Grass, GrassLODMesh}, 
-        mesh::GrassMesh, 
-        wind::{GrassWind, Wind},
         config::GrassConfig,
+        grass::{Grass, GrassBundle, GrassLODMesh},
+        mesh::GrassMesh,
+        wind::{GrassWind, Wind},
     };
+    pub use crate::ProceduralGrassPlugin;
 }
 
 pub(crate) const GRASS_SHADER_HANDLE: Handle<Shader> =
@@ -37,13 +51,11 @@ impl Plugin for ProceduralGrassPlugin {
 
         #[cfg(feature = "bevy-inspector-egui")]
         {
-            app 
-                .register_type::<Grass>()
+            app.register_type::<Grass>()
                 .register_type::<GrassWind>()
                 .register_type::<GrassConfig>();
         }
-        app
-            .insert_resource(self.wind.clone())
+        app.insert_resource(self.wind.clone())
             .insert_resource(self.config)
             .add_systems(Startup, grass::wind::create_wind_map)
             .add_systems(PostStartup, grass::grass::generate_grass)
@@ -59,24 +71,27 @@ impl Plugin for ProceduralGrassPlugin {
             ));
 
         let render_app = app.sub_app_mut(RenderApp);
-        render_app.add_render_command::<Opaque3d, DrawGrass>()
-        .init_resource::<SpecializedMeshPipelines<GrassPipeline>>()
-        .add_systems(
-            Render,
-            (
-                render::queue::grass_queue.in_set(RenderSet::QueueMeshes),
-                render::prepare::prepare_grass_buffers.in_set(RenderSet::PrepareResources),
-                render::prepare::prepare_global_wind_buffers.in_set(RenderSet::PrepareResources),
-                render::prepare::prepare_local_wind_buffers.in_set(RenderSet::PrepareResources),
-                render::prepare::prepare_grass_bind_group.in_set(RenderSet::PrepareBindGroups),
-                render::prepare::prepare_global_wind_bind_group.in_set(RenderSet::PrepareBindGroups),
-                render::prepare::prepare_local_wind_bind_group.in_set(RenderSet::PrepareBindGroups),
-            ),
-        );
+        render_app
+            .add_render_command::<Opaque3d, DrawGrass>()
+            .init_resource::<SpecializedMeshPipelines<GrassPipeline>>()
+            .add_systems(
+                Render,
+                (
+                    render::queue::grass_queue.in_set(RenderSet::QueueMeshes),
+                    render::prepare::prepare_grass_buffers.in_set(RenderSet::PrepareResources),
+                    render::prepare::prepare_global_wind_buffers
+                        .in_set(RenderSet::PrepareResources),
+                    render::prepare::prepare_local_wind_buffers.in_set(RenderSet::PrepareResources),
+                    render::prepare::prepare_grass_bind_group.in_set(RenderSet::PrepareBindGroups),
+                    render::prepare::prepare_global_wind_bind_group
+                        .in_set(RenderSet::PrepareBindGroups),
+                    render::prepare::prepare_local_wind_bind_group
+                        .in_set(RenderSet::PrepareBindGroups),
+                ),
+            );
     }
 
     fn finish(&self, app: &mut App) {
-        app.sub_app_mut(RenderApp)
-            .init_resource::<GrassPipeline>();
+        app.sub_app_mut(RenderApp).init_resource::<GrassPipeline>();
     }
 }

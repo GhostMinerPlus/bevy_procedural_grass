@@ -1,4 +1,13 @@
-use bevy::{prelude::*, reflect::TypeUuid, render::{render_asset::{RenderAsset, PrepareAssetError}, render_resource::{Buffer, BufferInitDescriptor, BufferUsages}, renderer::RenderDevice}, ecs::system::{lifetimeless::SRes, SystemParamItem}};
+use bevy::{
+    ecs::system::{lifetimeless::SRes, SystemParamItem},
+    prelude::*,
+    reflect::TypeUuid,
+    render::{
+        render_asset::{PrepareAssetError, RenderAsset},
+        render_resource::{Buffer, BufferInitDescriptor, BufferUsages},
+        renderer::RenderDevice,
+    },
+};
 use bytemuck::{Pod, Zeroable};
 
 #[derive(Clone, Copy, Pod, Zeroable, Reflect, Debug)]
@@ -34,15 +43,15 @@ impl RenderAsset for GrassChunkData {
     }
 
     fn prepare_asset(
-            extracted_asset: Self::ExtractedAsset,
-            param: &mut SystemParamItem<Self::Param>,
-        ) -> Result<Self::PreparedAsset, PrepareAssetError<Self::ExtractedAsset>> {
+        extracted_asset: Self::ExtractedAsset,
+        param: &mut SystemParamItem<Self::Param>,
+    ) -> Result<Self::PreparedAsset, PrepareAssetError<Self::ExtractedAsset>> {
         let render_device = param;
 
         let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
             label: None,
-            contents:  bytemuck::cast_slice(extracted_asset.as_slice()),
-            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST | BufferUsages::STORAGE
+            contents: bytemuck::cast_slice(extracted_asset.as_slice()),
+            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST | BufferUsages::STORAGE,
         });
 
         Ok(GrassChunkBuffer {

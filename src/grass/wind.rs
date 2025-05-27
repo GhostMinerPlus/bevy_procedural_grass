@@ -1,10 +1,10 @@
 use bevy::ecs::query::QueryItem;
+use bevy::prelude::*;
 use bevy::render::extract_component::ExtractComponent;
 use bevy::render::extract_resource::ExtractResource;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
-use bevy::prelude::*;
 #[cfg(feature = "bevy-inspector-egui")]
-use bevy_inspector_egui::{InspectorOptions, prelude::ReflectInspectorOptions};
+use bevy_inspector_egui::{prelude::ReflectInspectorOptions, InspectorOptions};
 use bytemuck::{Pod, Zeroable};
 
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -19,7 +19,7 @@ pub struct Wind {
     pub oscillation: f32,
     pub scale: f32,
 
-    pub _padding: [f32; 2]
+    pub _padding: [f32; 2],
 }
 
 impl Default for Wind {
@@ -32,7 +32,7 @@ impl Default for Wind {
             oscillation: 1.5,
             scale: 100.,
 
-            _padding: [0.0, 0.0]
+            _padding: [0.0, 0.0],
         }
     }
 }
@@ -69,7 +69,7 @@ use std::f64::consts::PI;
 impl GrassWind {
     pub fn generate_wind_map(size: usize, scale: f64) -> Image {
         let perlin = noise::PerlinSurflet::new(0);
-    
+
         let mut data = Vec::with_capacity(size * size * 4);
 
         let (x1, y1, x2, y2) = (-1.0, -1.0, 1.0, 1.0);
@@ -92,18 +92,18 @@ impl GrassWind {
                 let g = ((noise_scaled >> 8) & 255) as u8;
                 let b = (noise_scaled & 255) as u8;
 
-                data.push(r); 
-                data.push(g); 
-                data.push(b); 
+                data.push(r);
+                data.push(g);
+                data.push(b);
                 data.push(255);
             }
         }
-    
+
         Image::new(
             Extent3d {
-                width: size as u32, 
-                height: size as u32, 
-                depth_or_array_layers: 1
+                width: size as u32,
+                height: size as u32,
+                depth_or_array_layers: 1,
             },
             TextureDimension::D2,
             data,
@@ -112,9 +112,6 @@ impl GrassWind {
     }
 }
 
-pub fn create_wind_map(
-    mut wind: ResMut<GrassWind>,
-    asset_server: Res<AssetServer>,
-) {
+pub fn create_wind_map(mut wind: ResMut<GrassWind>, asset_server: Res<AssetServer>) {
     wind.wind_map = asset_server.add(GrassWind::generate_wind_map(2048, 4.));
 }

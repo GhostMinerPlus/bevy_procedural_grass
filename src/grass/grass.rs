@@ -1,8 +1,18 @@
-use bevy::{prelude::*, render::{view::NoFrustumCulling, mesh::VertexAttributeValues, extract_component::ExtractComponent, render_resource::{Extent3d, TextureDimension, TextureFormat}}, utils::HashMap, ecs::query::QueryItem};
+use bevy::{
+    ecs::query::QueryItem,
+    prelude::*,
+    render::{
+        extract_component::ExtractComponent,
+        mesh::VertexAttributeValues,
+        render_resource::{Extent3d, TextureDimension, TextureFormat},
+        view::NoFrustumCulling,
+    },
+    utils::HashMap,
+};
 #[cfg(feature = "bevy-inspector-egui")]
 use bevy_inspector_egui::{prelude::ReflectInspectorOptions, InspectorOptions};
 
-use bytemuck::{Zeroable, Pod};
+use bytemuck::{Pod, Zeroable};
 use rand::Rng;
 
 use crate::render::instance::{GrassChunkData, GrassData};
@@ -30,7 +40,8 @@ pub fn generate_grass(
     for (grass, mut chunks) in query.iter_mut() {
         let (transform, mesh_handle) = mesh_entity_query.get(grass.entity.unwrap()).unwrap();
         let mesh = meshes.get(mesh_handle).unwrap();
-        chunks.chunks = grass.generate_grass(transform, mesh, chunks.chunk_size, &asset_server, &config);
+        chunks.chunks =
+            grass.generate_grass(transform, mesh, chunks.chunk_size, &asset_server, &config);
     }
 }
 
@@ -56,10 +67,19 @@ impl Default for Grass {
 }
 
 impl Grass {
-    fn generate_grass(&self, transform: &Transform, mesh: &Mesh, chunk_size: f32, asset_server: &AssetServer, config: &GrassConfig) -> HashMap<(i32, i32, i32), GrassChunkData> {
+    fn generate_grass(
+        &self,
+        transform: &Transform,
+        mesh: &Mesh,
+        chunk_size: f32,
+        asset_server: &AssetServer,
+        config: &GrassConfig,
+    ) -> HashMap<(i32, i32, i32), GrassChunkData> {
         let mut chunks: HashMap<(i32, i32, i32), GrassChunkData> = HashMap::new();
 
-        if let Some(VertexAttributeValues::Float32x3(positions)) = mesh.attribute(Mesh::ATTRIBUTE_POSITION) {
+        if let Some(VertexAttributeValues::Float32x3(positions)) =
+            mesh.attribute(Mesh::ATTRIBUTE_POSITION)
+        {
             if let Some(indices) = mesh.indices() {
                 let mut triangle = Vec::new();
                 for index in indices.iter() {
@@ -71,40 +91,57 @@ impl Grass {
                             let v2 = Vec3::from(positions[triangle[2] as usize]) * transform.scale;
 
                             let normal = (v1 - v0).cross(v2 - v0).normalize();
-        
+
                             let area = ((v1 - v0).cross(v2 - v0)).length() / 2.0;
-        
+
                             let scaled_density = (self.density as f32 * area).ceil() as u32;
-        
-                            (0..scaled_density).filter_map(|_| {
-                                let mut rng = rand::thread_rng();
-        
-                                let r1 = rng.gen::<f32>().sqrt();
-                                let r2 = rng.gen::<f32>();
-                                let barycentric = Vec3::new(1.0 - r1, r1 * (1.0 - r2), r1 * r2);
-        
-                                let position = (v0 * barycentric.x + v1 * barycentric.y + v2 * barycentric.z) + transform.translation;
-                                
-                                let chunk_coords = (
-                                    (position.x / chunk_size).floor() as i32,
-                                    (position.y / chunk_size).floor() as i32,
-                                    (position.z / chunk_size).floor() as i32,
-                                );
 
-                                let chunk_base = Vec3::new(chunk_coords.0 as f32, chunk_coords.1 as f32, chunk_coords.2 as f32) * chunk_size;
-                                let chunk_pos = position - chunk_base;
-                                let chunk_uvw = Vec3::new(chunk_pos.x / chunk_size, chunk_pos.y / chunk_size, chunk_pos.z / chunk_size);
-                                
-                                let instance = GrassData {
-                                    position,
-                                    normal,
-                                    chunk_uvw,
-                                };
+                            (0..scaled_density)
+                                .filter_map(|_| {
+                                    let mut rng = rand::thread_rng();
 
-                                chunks.entry(chunk_coords).or_insert_with(|| { GrassChunkData(Vec::new())}).0.push(instance);
+                                    let r1 = rng.gen::<f32>().sqrt();
+                                    let r2 = rng.gen::<f32>();
+                                    let barycentric = Vec3::new(1.0 - r1, r1 * (1.0 - r2), r1 * r2);
 
-                                None
-                            }).collect::<Vec<_>>()
+                                    let position = (v0 * barycentric.x
+                                        + v1 * barycentric.y
+                                        + v2 * barycentric.z)
+                                        + transform.translation;
+
+                                    let chunk_coords = (
+                                        (position.x / chunk_size).floor() as i32,
+                                        (position.y / chunk_size).floor() as i32,
+                                        (position.z / chunk_size).floor() as i32,
+                                    );
+
+                                    let chunk_base = Vec3::new(
+                                        chunk_coords.0 as f32,
+                                        chunk_coords.1 as f32,
+                                        chunk_coords.2 as f32,
+                                    ) * chunk_size;
+                                    let chunk_pos = position - chunk_base;
+                                    let chunk_uvw = Vec3::new(
+                                        chunk_pos.x / chunk_size,
+                                        chunk_pos.y / chunk_size,
+                                        chunk_pos.z / chunk_size,
+                                    );
+
+                                    let instance = GrassData {
+                                        position,
+                                        normal,
+                                        chunk_uvw,
+                                    };
+
+                                    chunks
+                                        .entry(chunk_coords)
+                                        .or_insert_with(|| GrassChunkData(Vec::new()))
+                                        .0
+                                        .push(instance);
+
+                                    None
+                                })
+                                .collect::<Vec<_>>()
                         };
                         triangle.clear();
                     }
@@ -137,11 +174,7 @@ pub struct GrassColor {
 
 impl GrassColor {
     pub fn to_array(&self) -> [[f32; 4]; 3] {
-        [
-            self.ao.into(), 
-            self.color_1.into(), 
-            self.color_2.into()
-        ]
+        [self.ao.into(), self.color_1.into(), self.color_2.into()]
     }
 }
 
@@ -193,7 +226,7 @@ pub struct GrassLODMesh {
 impl GrassLODMesh {
     pub fn new(mesh_handle: Handle<Mesh>) -> Self {
         Self {
-            mesh_handle: Some(mesh_handle)
+            mesh_handle: Some(mesh_handle),
         }
     }
 }
