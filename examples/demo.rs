@@ -1,5 +1,10 @@
 use bevy::{prelude::*, render::mesh::VertexAttributeValues};
-use bevy_procedural_grass::prelude::*;
+use bevy_procedural_grass::{
+    bean::{GrassMesh, Wind},
+    com::{Grass, GrassBundle, GrassLODMesh, GrassWind},
+    prelude::*,
+    res::GrassConfig,
+};
 
 use noise::NoiseFn;
 

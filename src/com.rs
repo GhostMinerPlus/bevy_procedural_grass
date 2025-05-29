@@ -1,47 +1,97 @@
+use std::collections::HashMap;
+
 use bevy::{
     ecs::query::QueryItem,
     prelude::*,
+    reflect::TypeUuid,
     render::{
-        extract_component::ExtractComponent,
-        mesh::VertexAttributeValues,
-        render_resource::{Extent3d, TextureDimension, TextureFormat},
-        view::NoFrustumCulling,
+        extract_component::ExtractComponent, mesh::VertexAttributeValues, view::NoFrustumCulling,
     },
-    utils::HashMap,
 };
-#[cfg(feature = "bevy-inspector-egui")]
-use bevy_inspector_egui::{prelude::ReflectInspectorOptions, InspectorOptions};
-
 use bytemuck::{Pod, Zeroable};
 use rand::Rng;
 
-use crate::render::instance::{GrassChunkData, GrassData};
+use crate::{
+    assets::GrassData,
+    bean::{CullDimension, GrassRenderInfo, Wind},
+    res::GrassConfig,
+};
 
-use super::{chunk::GrassChunks, config::GrassConfig};
+pub use crate::plugin::render_com::*;
 
-#[derive(Bundle, Default)]
-pub struct GrassBundle {
-    pub mesh: Handle<Mesh>,
-    pub lod: GrassLODMesh,
-    pub grass: Grass,
-    pub grass_chunks: GrassChunks,
-    #[bundle()]
-    pub spatial: SpatialBundle,
-    pub frustum_culling: NoFrustumCulling,
+#[derive(Component, Deref, Clone, Asset, TypeUuid, TypePath)]
+#[uuid = "81a29e63-ef6c-4561-b49c-4a138ff39c01"]
+pub struct GrassChunkData(pub Vec<GrassData>);
+
+#[derive(Component, Resource, Default, Clone)]
+#[cfg_attr(feature = "bevy-inspector-egui", derive(Reflect, InspectorOptions))]
+#[cfg_attr(feature = "bevy-inspector-egui", reflect(Resource, InspectorOptions))]
+pub struct GrassWind {
+    pub wind_data: Wind,
+    pub wind_map: Handle<Image>,
 }
 
-pub fn generate_grass(
-    mut query: Query<(&Grass, &mut GrassChunks)>,
-    mesh_entity_query: Query<(&Transform, &Handle<Mesh>)>,
-    meshes: Res<Assets<Mesh>>,
-    asset_server: Res<AssetServer>,
-    config: Res<GrassConfig>,
-) {
-    for (grass, mut chunks) in query.iter_mut() {
-        let (transform, mesh_handle) = mesh_entity_query.get(grass.entity.unwrap()).unwrap();
-        let mesh = meshes.get(mesh_handle).unwrap();
-        chunks.chunks =
-            grass.generate_grass(transform, mesh, chunks.chunk_size, &asset_server, &config);
+#[derive(Component, Clone)]
+pub struct GrassChunks {
+    pub chunk_size: f32,
+    pub cull_dimension: CullDimension,
+    pub chunks: HashMap<(i32, i32, i32), GrassChunkData>,
+    pub loaded: HashMap<(i32, i32, i32), Handle<GrassChunkData>>,
+    pub render: Vec<GrassRenderInfo>,
+}
+
+impl Default for GrassChunks {
+    fn default() -> Self {
+        Self {
+            chunk_size: 30.,
+            cull_dimension: CullDimension::D2,
+            chunks: HashMap::new(),
+            loaded: HashMap::new(),
+            render: Vec::new(),
+        }
+    }
+}
+
+impl ExtractComponent for GrassChunks {
+    type Query = &'static GrassChunks;
+    type Filter = ();
+    type Out = RenderGrassChunks;
+
+    fn extract_component(item: QueryItem<'_, Self::Query>) -> Option<Self::Out> {
+        Some(RenderGrassChunks(item.render.clone()))
+    }
+}
+
+#[derive(Component, Default, Clone)]
+pub struct RenderGrassChunks(pub Vec<GrassRenderInfo>);
+
+#[derive(Component, Clone, Copy, Pod, Zeroable)]
+#[cfg_attr(feature = "bevy-inspector-egui", derive(Reflect, InspectorOptions))]
+#[cfg_attr(feature = "bevy-inspector-egui", reflect(InspectorOptions))]
+#[repr(C)]
+pub struct Blade {
+    pub length: f32,
+    pub width: f32,
+    pub tilt: f32,
+    pub tilt_variance: f32,
+    pub p1_flexibility: f32,
+    pub p2_flexibility: f32,
+    pub curve: f32,
+    pub specular: f32,
+}
+
+impl Default for Blade {
+    fn default() -> Self {
+        Self {
+            length: 1.5,
+            width: 0.05,
+            tilt: 0.5,
+            tilt_variance: 0.2,
+            p1_flexibility: 0.5,
+            p2_flexibility: 0.5,
+            curve: 15.,
+            specular: 0.02,
+        }
     }
 }
 
@@ -67,7 +117,7 @@ impl Default for Grass {
 }
 
 impl Grass {
-    fn generate_grass(
+    pub(crate) fn generate_grass(
         &self,
         transform: &Transform,
         mesh: &Mesh,
@@ -188,34 +238,15 @@ impl Default for GrassColor {
     }
 }
 
-#[derive(Component, Clone, Copy, Pod, Zeroable)]
-#[cfg_attr(feature = "bevy-inspector-egui", derive(Reflect, InspectorOptions))]
-#[cfg_attr(feature = "bevy-inspector-egui", reflect(InspectorOptions))]
-#[repr(C)]
-pub struct Blade {
-    pub length: f32,
-    pub width: f32,
-    pub tilt: f32,
-    pub tilt_variance: f32,
-    pub p1_flexibility: f32,
-    pub p2_flexibility: f32,
-    pub curve: f32,
-    pub specular: f32,
-}
-
-impl Default for Blade {
-    fn default() -> Self {
-        Self {
-            length: 1.5,
-            width: 0.05,
-            tilt: 0.5,
-            tilt_variance: 0.2,
-            p1_flexibility: 0.5,
-            p2_flexibility: 0.5,
-            curve: 15.,
-            specular: 0.02,
-        }
-    }
+#[derive(Bundle, Default)]
+pub struct GrassBundle {
+    pub mesh: Handle<Mesh>,
+    pub lod: GrassLODMesh,
+    pub grass: Grass,
+    pub grass_chunks: GrassChunks,
+    #[bundle()]
+    pub spatial: SpatialBundle,
+    pub frustum_culling: NoFrustumCulling,
 }
 
 #[derive(Component, Default, Clone)]

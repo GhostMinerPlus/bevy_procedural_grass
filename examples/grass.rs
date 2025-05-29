@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_flycam::PlayerPlugin;
-use bevy_procedural_grass::{grass::displacement::GrassDisplacer, prelude::*};
+use bevy_procedural_grass::{bean::displacement::GrassDisplacer, prelude::*};
 
 fn main() {
     App::new()

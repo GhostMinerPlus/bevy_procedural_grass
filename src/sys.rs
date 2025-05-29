@@ -1,72 +1,35 @@
 use bevy::{
-    ecs::query::QueryItem,
     math::{Affine3A, Vec3A},
     prelude::*,
-    render::{
-        extract_component::ExtractComponent,
-        primitives::{Aabb, Frustum},
-    },
-    utils::HashMap,
+    render::primitives::{Aabb, Frustum},
 };
 
-use super::config::GrassConfig;
-use crate::render::instance::GrassChunkData;
+use crate::{
+    bean::{CullDimension, GrassLOD},
+    com::{Grass, GrassChunkData, GrassChunks, GrassWind},
+    res::GrassConfig,
+};
 
-#[derive(Clone, Copy)]
-pub enum GrassLOD {
-    High,
-    Low,
+pub(super) fn create_wind_map(mut wind: ResMut<GrassWind>, asset_server: Res<AssetServer>) {
+    wind.wind_map = asset_server.add(GrassWind::generate_wind_map(2048, 4.));
 }
 
-#[derive(Clone, Copy)]
-pub enum CullDimension {
-    D2,
-    D3,
-}
-
-impl Default for CullDimension {
-    fn default() -> Self {
-        Self::D2
+pub(super) fn generate_grass(
+    mut query: Query<(&Grass, &mut GrassChunks)>,
+    mesh_entity_query: Query<(&Transform, &Handle<Mesh>)>,
+    meshes: Res<Assets<Mesh>>,
+    asset_server: Res<AssetServer>,
+    config: Res<GrassConfig>,
+) {
+    for (grass, mut chunks) in query.iter_mut() {
+        let (transform, mesh_handle) = mesh_entity_query.get(grass.entity.unwrap()).unwrap();
+        let mesh = meshes.get(mesh_handle).unwrap();
+        chunks.chunks =
+            grass.generate_grass(transform, mesh, chunks.chunk_size, &asset_server, &config);
     }
 }
 
-pub type GrassRenderInfo = (GrassLOD, Handle<GrassChunkData>);
-
-#[derive(Component, Clone)]
-pub struct GrassChunks {
-    pub chunk_size: f32,
-    pub cull_dimension: CullDimension,
-    pub chunks: HashMap<(i32, i32, i32), GrassChunkData>,
-    pub loaded: HashMap<(i32, i32, i32), Handle<GrassChunkData>>,
-    pub render: Vec<GrassRenderInfo>,
-}
-
-impl Default for GrassChunks {
-    fn default() -> Self {
-        Self {
-            chunk_size: 30.,
-            cull_dimension: CullDimension::D2,
-            chunks: HashMap::new(),
-            loaded: HashMap::new(),
-            render: Vec::new(),
-        }
-    }
-}
-
-impl ExtractComponent for GrassChunks {
-    type Query = &'static GrassChunks;
-    type Filter = ();
-    type Out = RenderGrassChunks;
-
-    fn extract_component(item: QueryItem<'_, Self::Query>) -> Option<Self::Out> {
-        Some(RenderGrassChunks(item.render.clone()))
-    }
-}
-
-#[derive(Component, Default, Clone)]
-pub struct RenderGrassChunks(pub Vec<GrassRenderInfo>);
-
-pub(crate) fn grass_culling(
+pub(super) fn grass_culling(
     mut query: Query<&mut GrassChunks>,
     camera_query: Query<(&Transform, &Frustum)>,
     mut grass_asset: ResMut<Assets<GrassChunkData>>,

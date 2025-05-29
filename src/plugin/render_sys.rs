@@ -1,48 +1,70 @@
-use std::marker::PhantomData;
-
 use bevy::{
+    core_pipeline::core_3d::Opaque3d,
+    pbr::{MeshPipelineKey, RenderMeshInstances},
     prelude::*,
     render::{
         render_asset::RenderAssets,
+        render_phase::{DrawFunctions, RenderPhase},
         render_resource::{
-            BindGroup, BindGroupEntries, BindingResource, Buffer, BufferBinding,
-            BufferInitDescriptor, BufferUsages,
+            BindGroupEntries, BindingResource, BufferBinding, BufferInitDescriptor, BufferUsages,
+            PipelineCache, SpecializedMeshPipelines,
         },
         renderer::RenderDevice,
         texture::FallbackImage,
+        view::ExtractedView,
     },
 };
 
-use crate::grass::{
-    chunk::RenderGrassChunks,
-    grass::{Blade, Grass, GrassColor},
-    wind::GrassWind,
+use crate::{
+    com::{Blade, Grass, GrassColor, GrassWind, RenderGrassChunks},
+    command::DrawGrass,
+    pipeline::GrassPipeline,
 };
 
-use super::pipeline::GrassPipeline;
+use super::render_com::{BufferBindGroup, GrassBuffer, WindBuffer};
 
-#[derive(Component, Resource, Clone)]
-pub struct BufferBindGroup<T> {
-    pub bind_group: BindGroup,
-    _marker: PhantomData<T>,
-}
+pub(super) fn grass_queue(
+    opaque_3d_draw_functions: Res<DrawFunctions<Opaque3d>>,
+    custom_pipeline: Res<GrassPipeline>,
+    msaa: Res<Msaa>,
+    mut pipelines: ResMut<SpecializedMeshPipelines<GrassPipeline>>,
+    pipeline_cache: Res<PipelineCache>,
+    meshes: Res<RenderAssets<Mesh>>,
+    render_mesh_instances: Res<RenderMeshInstances>,
+    material_meshes: Query<Entity, With<RenderGrassChunks>>,
+    mut views: Query<(&ExtractedView, &mut RenderPhase<Opaque3d>)>,
+) {
+    let draw_custom = opaque_3d_draw_functions.read().id::<DrawGrass>();
 
-impl<T> BufferBindGroup<T> {
-    pub fn new(bind_group: BindGroup) -> Self {
-        Self {
-            bind_group,
-            _marker: PhantomData,
+    let msaa_key = MeshPipelineKey::from_msaa_samples(msaa.samples());
+    for (view, mut opaque_phase) in &mut views {
+        let view_key = msaa_key | MeshPipelineKey::from_hdr(view.hdr);
+        let rangefinder = view.rangefinder3d();
+        for entity in &material_meshes {
+            let Some(mesh_instance) = render_mesh_instances.get(&entity) else {
+                continue;
+            };
+            let Some(mesh) = meshes.get(mesh_instance.mesh_asset_id) else {
+                continue;
+            };
+            let key = view_key | MeshPipelineKey::from_primitive_topology(mesh.primitive_topology);
+            let pipeline = pipelines
+                .specialize(&pipeline_cache, &custom_pipeline, key, &mesh.layout)
+                .unwrap();
+            opaque_phase.add(Opaque3d {
+                entity,
+                pipeline,
+                draw_function: draw_custom,
+                distance: rangefinder
+                    .distance_translation(&mesh_instance.transforms.transform.translation),
+                batch_range: 0..1,
+                dynamic_offset: None,
+            });
         }
     }
 }
 
-#[derive(Component, Clone)]
-pub struct GrassBuffer {
-    pub color_buffer: Buffer,
-    pub blade_buffer: Buffer,
-}
-
-pub(crate) fn prepare_grass_buffers(
+pub(super) fn prepare_grass_buffers(
     mut commands: Commands,
     query: Query<(Entity, &GrassColor, &Blade)>,
     render_device: Res<RenderDevice>,
@@ -67,7 +89,37 @@ pub(crate) fn prepare_grass_buffers(
     }
 }
 
-pub(crate) fn prepare_grass_bind_group(
+pub(super) fn prepare_global_wind_buffers(
+    mut commands: Commands,
+    render_device: Res<RenderDevice>,
+    wind: Res<GrassWind>,
+) {
+    let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
+        label: Some("wind buffer"),
+        contents: bytemuck::cast_slice(&[wind.wind_data.clone()]),
+        usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+    });
+
+    commands.insert_resource(WindBuffer { buffer });
+}
+
+pub(super) fn prepare_local_wind_buffers(
+    mut commands: Commands,
+    query: Query<(Entity, &GrassWind)>,
+    render_device: Res<RenderDevice>,
+) {
+    for (entity, grass_wind) in &query {
+        let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
+            label: Some("local wind buffer"),
+            contents: bytemuck::cast_slice(&[grass_wind.wind_data.clone()]),
+            usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+        });
+
+        commands.entity(entity).insert(WindBuffer { buffer });
+    }
+}
+
+pub(super) fn prepare_grass_bind_group(
     mut commands: Commands,
     pipeline: Res<GrassPipeline>,
     render_device: Res<RenderDevice>,
@@ -99,26 +151,7 @@ pub(crate) fn prepare_grass_bind_group(
     }
 }
 
-#[derive(Component, Resource, Clone)]
-pub struct WindBuffer {
-    buffer: Buffer,
-}
-
-pub(crate) fn prepare_global_wind_buffers(
-    mut commands: Commands,
-    render_device: Res<RenderDevice>,
-    wind: Res<GrassWind>,
-) {
-    let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
-        label: Some("wind buffer"),
-        contents: bytemuck::cast_slice(&[wind.wind_data.clone()]),
-        usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
-    });
-
-    commands.insert_resource(WindBuffer { buffer });
-}
-
-pub(crate) fn prepare_global_wind_bind_group(
+pub(super) fn prepare_global_wind_bind_group(
     mut commands: Commands,
     pipeline: Res<GrassPipeline>,
     render_device: Res<RenderDevice>,
@@ -151,23 +184,7 @@ pub(crate) fn prepare_global_wind_bind_group(
     commands.insert_resource(BufferBindGroup::<GrassWind>::new(bind_group));
 }
 
-pub(crate) fn prepare_local_wind_buffers(
-    mut commands: Commands,
-    query: Query<(Entity, &GrassWind)>,
-    render_device: Res<RenderDevice>,
-) {
-    for (entity, grass_wind) in &query {
-        let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
-            label: Some("local wind buffer"),
-            contents: bytemuck::cast_slice(&[grass_wind.wind_data.clone()]),
-            usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
-        });
-
-        commands.entity(entity).insert(WindBuffer { buffer });
-    }
-}
-
-pub(crate) fn prepare_local_wind_bind_group(
+pub(super) fn prepare_local_wind_bind_group(
     mut commands: Commands,
     pipeline: Res<GrassPipeline>,
     render_device: Res<RenderDevice>,

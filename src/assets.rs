@@ -1,14 +1,15 @@
 use bevy::{
     ecs::system::{lifetimeless::SRes, SystemParamItem},
     prelude::*,
-    reflect::TypeUuid,
     render::{
         render_asset::{PrepareAssetError, RenderAsset},
-        render_resource::{Buffer, BufferInitDescriptor, BufferUsages},
+        render_resource::{BufferInitDescriptor, BufferUsages},
         renderer::RenderDevice,
     },
 };
 use bytemuck::{Pod, Zeroable};
+
+use crate::{bean::GrassChunkBuffer, com::GrassChunkData};
 
 #[derive(Clone, Copy, Pod, Zeroable, Reflect, Debug)]
 #[repr(C)]
@@ -17,15 +18,6 @@ pub struct GrassData {
     pub normal: Vec3,
     pub chunk_uvw: Vec3,
 }
-
-pub struct GrassChunkBuffer {
-    pub buffer: Buffer,
-    pub length: usize,
-}
-
-#[derive(Component, Deref, Clone, Asset, TypeUuid, TypePath)]
-#[uuid = "81a29e63-ef6c-4561-b49c-4a138ff39c01"]
-pub struct GrassChunkData(pub Vec<GrassData>);
 
 impl Default for GrassChunkData {
     fn default() -> Self {

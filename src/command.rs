@@ -14,13 +14,10 @@ use bevy::{
     },
 };
 
-use crate::grass::{
-    chunk::{GrassLOD, RenderGrassChunks},
-    grass::{Grass, GrassLODMesh},
-    wind::GrassWind,
+use crate::{
+    bean::GrassLOD,
+    com::{BufferBindGroup, Grass, GrassChunkData, GrassLODMesh, GrassWind, RenderGrassChunks},
 };
-
-use super::{instance::GrassChunkData, prepare::BufferBindGroup};
 
 pub type DrawGrass = (
     SetItemPipeline,
@@ -32,6 +29,7 @@ pub type DrawGrass = (
 );
 
 pub struct SetGrassBindGroup<const I: usize>;
+
 impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetGrassBindGroup<I> {
     type Param = ();
     type ViewWorldQuery = ();
@@ -53,6 +51,7 @@ impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetGrassBindGroup<I> {
 }
 
 pub struct SetWindBindGroup<const I: usize>;
+
 impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetWindBindGroup<I> {
     type Param = SRes<BufferBindGroup<GrassWind>>;
     type ViewWorldQuery = ();
@@ -76,6 +75,7 @@ impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetWindBindGroup<I> {
 }
 
 pub struct DrawGrassInstanced;
+
 impl<P: PhaseItem> RenderCommand<P> for DrawGrassInstanced {
     type Param = (
         SRes<RenderAssets<Mesh>>,

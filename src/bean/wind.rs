@@ -6,6 +6,10 @@ use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 #[cfg(feature = "bevy-inspector-egui")]
 use bevy_inspector_egui::{prelude::ReflectInspectorOptions, InspectorOptions};
 use bytemuck::{Pod, Zeroable};
+use noise::NoiseFn;
+use std::f64::consts::PI;
+
+use crate::com::GrassWind;
 
 #[derive(Clone, Copy, Pod, Zeroable)]
 #[cfg_attr(feature = "bevy-inspector-egui", derive(Reflect, InspectorOptions))]
@@ -37,14 +41,6 @@ impl Default for Wind {
     }
 }
 
-#[derive(Component, Resource, Default, Clone)]
-#[cfg_attr(feature = "bevy-inspector-egui", derive(Reflect, InspectorOptions))]
-#[cfg_attr(feature = "bevy-inspector-egui", reflect(Resource, InspectorOptions))]
-pub struct GrassWind {
-    pub wind_data: Wind,
-    pub wind_map: Handle<Image>,
-}
-
 impl ExtractComponent for GrassWind {
     type Query = &'static GrassWind;
     type Filter = ();
@@ -62,9 +58,6 @@ impl ExtractResource for GrassWind {
         source.clone()
     }
 }
-
-use noise::NoiseFn;
-use std::f64::consts::PI;
 
 impl GrassWind {
     pub fn generate_wind_map(size: usize, scale: f64) -> Image {
@@ -110,8 +103,4 @@ impl GrassWind {
             TextureFormat::Rgba8UnormSrgb,
         )
     }
-}
-
-pub fn create_wind_map(mut wind: ResMut<GrassWind>, asset_server: Res<AssetServer>) {
-    wind.wind_map = asset_server.add(GrassWind::generate_wind_map(2048, 4.));
 }

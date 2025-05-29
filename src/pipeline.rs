@@ -13,9 +13,7 @@ use bevy::{
     },
 };
 
-use crate::GRASS_SHADER_HANDLE;
-
-use super::instance::GrassData;
+use crate::{assets::GrassData, GRASS_SHADER_HANDLE};
 
 #[derive(Resource)]
 pub struct GrassPipeline {

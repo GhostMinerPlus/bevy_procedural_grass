@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 use bevy_flycam::PlayerPlugin;
-use bevy_procedural_grass::prelude::*;
+use bevy_procedural_grass::{
+    com::{Grass, GrassBundle},
+    prelude::*,
+};
 
 fn main() {
     let mut app = App::new();
