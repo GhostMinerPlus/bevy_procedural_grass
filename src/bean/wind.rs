@@ -2,6 +2,7 @@ use bevy::ecs::query::QueryItem;
 use bevy::prelude::*;
 use bevy::render::extract_component::ExtractComponent;
 use bevy::render::extract_resource::ExtractResource;
+use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 #[cfg(feature = "bevy-inspector-egui")]
 use bevy_inspector_egui::{prelude::ReflectInspectorOptions, InspectorOptions};
@@ -42,11 +43,11 @@ impl Default for Wind {
 }
 
 impl ExtractComponent for GrassWind {
-    type Query = &'static GrassWind;
-    type Filter = ();
+    type QueryData = &'static GrassWind;
+    type QueryFilter = ();
     type Out = Self;
 
-    fn extract_component(item: QueryItem<'_, Self::Query>) -> Option<Self::Out> {
+    fn extract_component(item: QueryItem<'_, Self::QueryData>) -> Option<Self::Out> {
         Some(item.clone())
     }
 }
@@ -101,6 +102,7 @@ impl GrassWind {
             TextureDimension::D2,
             data,
             TextureFormat::Rgba8UnormSrgb,
+            RenderAssetUsages::all(),
         )
     }
 }

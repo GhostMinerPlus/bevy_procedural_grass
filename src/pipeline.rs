@@ -4,7 +4,7 @@ use bevy::{
     render::{
         mesh::MeshVertexBufferLayout,
         render_resource::{
-            BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType,
+            BindGroupLayout, BindGroupLayoutEntry, BindingType,
             BufferBindingType, RenderPipelineDescriptor, ShaderStages, SpecializedMeshPipeline,
             SpecializedMeshPipelineError, TextureSampleType, TextureViewDimension, VertexAttribute,
             VertexBufferLayout, VertexFormat, VertexStepMode,
@@ -29,9 +29,9 @@ impl FromWorld for GrassPipeline {
 
         let mesh_pipeline = world.resource::<MeshPipeline>();
 
-        let grass_layout = render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-            label: Some("grass_layout"),
-            entries: &[
+        let grass_layout = render_device.create_bind_group_layout(
+            "grass_layout",
+            &[
                 BindGroupLayoutEntry {
                     binding: 0,
                     visibility: ShaderStages::FRAGMENT,
@@ -53,11 +53,11 @@ impl FromWorld for GrassPipeline {
                     count: None,
                 },
             ],
-        });
+        );
 
-        let wind_layout = render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-            label: Some("wind_layout"),
-            entries: &[
+        let wind_layout = render_device.create_bind_group_layout(
+            "wind_layout",
+            &[
                 BindGroupLayoutEntry {
                     binding: 0,
                     visibility: ShaderStages::VERTEX,
@@ -79,7 +79,7 @@ impl FromWorld for GrassPipeline {
                     count: None,
                 },
             ],
-        });
+        );
 
         GrassPipeline {
             shader: GRASS_SHADER_HANDLE,

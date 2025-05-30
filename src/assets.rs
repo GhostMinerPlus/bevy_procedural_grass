@@ -2,7 +2,7 @@ use bevy::{
     ecs::system::{lifetimeless::SRes, SystemParamItem},
     prelude::*,
     render::{
-        render_asset::{PrepareAssetError, RenderAsset},
+        render_asset::{PrepareAssetError, RenderAsset, RenderAssetUsages},
         render_resource::{BufferInitDescriptor, BufferUsages},
         renderer::RenderDevice,
     },
@@ -26,29 +26,28 @@ impl Default for GrassChunkData {
 }
 
 impl RenderAsset for GrassChunkData {
-    type ExtractedAsset = GrassChunkData;
     type PreparedAsset = GrassChunkBuffer;
     type Param = SRes<RenderDevice>;
 
-    fn extract_asset(&self) -> Self::ExtractedAsset {
-        GrassChunkData(self.0.clone())
+    fn asset_usage(&self) -> RenderAssetUsages {
+        RenderAssetUsages::all()
     }
 
     fn prepare_asset(
-        extracted_asset: Self::ExtractedAsset,
+        self,
         param: &mut SystemParamItem<Self::Param>,
-    ) -> Result<Self::PreparedAsset, PrepareAssetError<Self::ExtractedAsset>> {
+    ) -> Result<Self::PreparedAsset, PrepareAssetError<Self>> {
         let render_device = param;
 
         let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
             label: None,
-            contents: bytemuck::cast_slice(extracted_asset.as_slice()),
+            contents: bytemuck::cast_slice(self.as_slice()),
             usage: BufferUsages::VERTEX | BufferUsages::COPY_DST | BufferUsages::STORAGE,
         });
 
         Ok(GrassChunkBuffer {
             buffer,
-            length: extracted_asset.len(),
+            length: self.len(),
         })
     }
 }

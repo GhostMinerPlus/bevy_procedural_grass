@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use bevy::{
     ecs::query::QueryItem,
     prelude::*,
-    reflect::TypeUuid,
     render::{
         extract_component::ExtractComponent, mesh::VertexAttributeValues, view::NoFrustumCulling,
     },
@@ -19,8 +18,7 @@ use crate::{
 
 pub use crate::plugin::render_com::*;
 
-#[derive(Component, Deref, Clone, Asset, TypeUuid, TypePath)]
-#[uuid = "81a29e63-ef6c-4561-b49c-4a138ff39c01"]
+#[derive(Component, Deref, Clone, Asset, TypePath)]
 pub struct GrassChunkData(pub Vec<GrassData>);
 
 #[derive(Component, Resource, Default, Clone)]
@@ -53,11 +51,11 @@ impl Default for GrassChunks {
 }
 
 impl ExtractComponent for GrassChunks {
-    type Query = &'static GrassChunks;
-    type Filter = ();
+    type QueryData = &'static GrassChunks;
+    type QueryFilter = ();
     type Out = RenderGrassChunks;
 
-    fn extract_component(item: QueryItem<'_, Self::Query>) -> Option<Self::Out> {
+    fn extract_component(item: QueryItem<'_, Self::QueryData>) -> Option<Self::Out> {
         Some(RenderGrassChunks(item.render.clone()))
     }
 }
@@ -204,11 +202,11 @@ impl Grass {
 }
 
 impl ExtractComponent for Grass {
-    type Query = &'static Grass;
-    type Filter = ();
+    type QueryData = &'static Grass;
+    type QueryFilter = ();
     type Out = (GrassColor, Blade);
 
-    fn extract_component(item: QueryItem<'_, Self::Query>) -> Option<Self::Out> {
+    fn extract_component(item: QueryItem<'_, Self::QueryData>) -> Option<Self::Out> {
         Some((item.color.clone(), item.blade.clone()))
     }
 }
@@ -224,16 +222,20 @@ pub struct GrassColor {
 
 impl GrassColor {
     pub fn to_array(&self) -> [[f32; 4]; 3] {
-        [self.ao.into(), self.color_1.into(), self.color_2.into()]
+        [
+            self.ao.as_linear_rgba_f32(),
+            self.color_1.as_linear_rgba_f32(),
+            self.color_2.as_linear_rgba_f32(),
+        ]
     }
 }
 
 impl Default for GrassColor {
     fn default() -> Self {
         Self {
-            ao: [0.01, 0.02, 0.05, 1.0].into(),
-            color_1: [0.1, 0.23, 0.09, 1.0].into(),
-            color_2: [0.12, 0.39, 0.15, 1.0].into(),
+            ao: Color::rgba_from_array([0.01, 0.02, 0.05, 1.0]),
+            color_1: Color::rgba_from_array([0.1, 0.23, 0.09, 1.0]),
+            color_2: Color::rgba_from_array([0.12, 0.39, 0.15, 1.0]),
         }
     }
 }
@@ -263,11 +265,11 @@ impl GrassLODMesh {
 }
 
 impl ExtractComponent for GrassLODMesh {
-    type Query = &'static GrassLODMesh;
-    type Filter = ();
+    type QueryData = &'static GrassLODMesh;
+    type QueryFilter = ();
     type Out = Self;
 
-    fn extract_component(item: QueryItem<'_, Self::Query>) -> Option<Self::Out> {
+    fn extract_component(item: QueryItem<'_, Self::QueryData>) -> Option<Self::Out> {
         Some(item.clone())
     }
 }

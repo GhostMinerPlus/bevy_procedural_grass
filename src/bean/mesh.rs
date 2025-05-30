@@ -1,6 +1,5 @@
 use bevy::render::{
-    mesh::{Indices, Mesh},
-    render_resource::PrimitiveTopology,
+    mesh::{Indices, Mesh}, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology
 };
 
 pub struct GrassMesh;
@@ -37,10 +36,10 @@ impl GrassMesh {
         indices.push(tip - 1);
         indices.push(tip + 1);
 
-        let mut grass_mesh = Mesh::new(PrimitiveTopology::TriangleList);
+        let mut grass_mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::all());
         grass_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
         grass_mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
-        grass_mesh.set_indices(Some(Indices::U32(indices)));
+        grass_mesh.insert_indices(Indices::U32(indices));
 
         grass_mesh
     }

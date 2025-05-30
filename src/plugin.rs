@@ -16,20 +16,25 @@ pub struct RenderPlugin;
 
 impl Plugin for RenderPlugin {
     fn build(&self, app: &mut App) {
-        let render_app = app.sub_app_mut(RenderApp);
-        render_app
+        app.sub_app_mut(RenderApp)
             .add_render_command::<Opaque3d, DrawGrass>()
             .init_resource::<SpecializedMeshPipelines<GrassPipeline>>()
             .add_systems(
                 Render,
                 (
                     render_sys::grass_queue.in_set(RenderSet::QueueMeshes),
-                    render_sys::prepare_grass_buffers.in_set(RenderSet::PrepareResources),
-                    render_sys::prepare_global_wind_buffers.in_set(RenderSet::PrepareResources),
-                    render_sys::prepare_local_wind_buffers.in_set(RenderSet::PrepareResources),
-                    render_sys::prepare_grass_bind_group.in_set(RenderSet::PrepareBindGroups),
-                    render_sys::prepare_global_wind_bind_group.in_set(RenderSet::PrepareBindGroups),
-                    render_sys::prepare_local_wind_bind_group.in_set(RenderSet::PrepareBindGroups),
+                    (
+                        render_sys::prepare_grass_buffers,
+                        render_sys::prepare_global_wind_buffers,
+                        render_sys::prepare_local_wind_buffers,
+                    )
+                        .in_set(RenderSet::PrepareResources),
+                    (
+                        render_sys::prepare_grass_bind_group,
+                        render_sys::prepare_global_wind_bind_group,
+                        render_sys::prepare_local_wind_bind_group,
+                    )
+                        .in_set(RenderSet::PrepareBindGroups),
                 ),
             );
     }

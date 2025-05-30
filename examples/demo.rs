@@ -1,4 +1,4 @@
-use bevy::{prelude::*, render::mesh::VertexAttributeValues};
+use bevy::{log::LogPlugin, prelude::*, render::mesh::VertexAttributeValues};
 use bevy_procedural_grass::{
     bean::{GrassMesh, Wind},
     com::{Grass, GrassBundle, GrassLODMesh, GrassWind},
@@ -11,7 +11,10 @@ use noise::NoiseFn;
 fn main() {
     App::new()
         .add_plugins((
-            DefaultPlugins,
+            DefaultPlugins.set(LogPlugin {
+                filter: "info,bevy_procedural_grass=debug".into(),
+                ..Default::default()
+            }),
             ProceduralGrassPlugin {
                 config: GrassConfig::default(),
                 wind: GrassWind {

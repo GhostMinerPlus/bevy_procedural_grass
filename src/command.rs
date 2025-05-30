@@ -1,7 +1,10 @@
 use bevy::{
-    ecs::system::{
-        lifetimeless::{Read, SRes},
-        SystemParamItem,
+    ecs::{
+        query::ROQueryItem,
+        system::{
+            lifetimeless::{Read, SQuery, SRes},
+            SystemParamItem,
+        },
     },
     pbr::{RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup},
     prelude::*,
@@ -11,6 +14,7 @@ use bevy::{
         render_phase::{
             PhaseItem, RenderCommand, RenderCommandResult, SetItemPipeline, TrackedRenderPass,
         },
+        render_resource::BindGroup,
     },
 };
 
@@ -31,21 +35,28 @@ pub type DrawGrass = (
 pub struct SetGrassBindGroup<const I: usize>;
 
 impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetGrassBindGroup<I> {
-    type Param = ();
-    type ViewWorldQuery = ();
-    type ItemWorldQuery = Option<Read<BufferBindGroup<Grass>>>;
+    type Param = SQuery<Read<BufferBindGroup<Grass>>>;
+    type ViewQuery = ();
+    type ItemQuery = ();
 
     fn render<'w>(
-        _item: &P,
+        item: &P,
         _view: (),
-        bind_group: Option<&'w BufferBindGroup<Grass>>,
-        _meshes: SystemParamItem<'w, '_, Self::Param>,
+        _entity: Option<ROQueryItem<'w, Self::ItemQuery>>,
+        bind_groups: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        let Some(bind_group) = bind_group else {
+        let Some(bind_group) = bind_groups.get(item.entity()).ok() else {
+            log::warn!(
+                "Grass bind group not found for entity: {:?}",
+                item.entity()
+            );
             return RenderCommandResult::Failure;
         };
-        pass.set_bind_group(I, &bind_group.bind_group, &[]);
+
+        let bind_group = unsafe { &*(&bind_group.bind_group as *const BindGroup) };
+
+        pass.set_bind_group(I, bind_group, &[]);
         RenderCommandResult::Success
     }
 }
@@ -54,13 +65,13 @@ pub struct SetWindBindGroup<const I: usize>;
 
 impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetWindBindGroup<I> {
     type Param = SRes<BufferBindGroup<GrassWind>>;
-    type ViewWorldQuery = ();
-    type ItemWorldQuery = Option<Read<BufferBindGroup<GrassWind>>>;
+    type ViewQuery = ();
+    type ItemQuery = Read<BufferBindGroup<GrassWind>>;
 
     fn render<'w>(
         _item: &P,
         _view: (),
-        local_wind: Option<&'w BufferBindGroup<GrassWind>>,
+        local_wind: Option<ROQueryItem<'w, Self::ItemQuery>>,
         wind_bind_group: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
@@ -81,16 +92,17 @@ impl<P: PhaseItem> RenderCommand<P> for DrawGrassInstanced {
         SRes<RenderAssets<Mesh>>,
         SRes<RenderMeshInstances>,
         SRes<RenderAssets<GrassChunkData>>,
+        SQuery<(Read<GrassLODMesh>, Read<RenderGrassChunks>)>
     );
-    type ViewWorldQuery = ();
-    type ItemWorldQuery = (Read<GrassLODMesh>, Read<RenderGrassChunks>);
+    type ViewQuery = ();
+    type ItemQuery = ();
 
     #[inline]
     fn render<'w>(
         item: &P,
         _view: (),
-        (lod, chunks): (&'w GrassLODMesh, &'w RenderGrassChunks),
-        (meshes, render_mesh_instances, grass_data): SystemParamItem<'w, '_, Self::Param>,
+        _entity: Option<ROQueryItem<'w, Self::ItemQuery>>,
+        (meshes, render_mesh_instances, grass_data, entity): SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
         let Some(mesh_instance) = render_mesh_instances.get(&item.entity()) else {
@@ -104,6 +116,8 @@ impl<P: PhaseItem> RenderCommand<P> for DrawGrassInstanced {
             None => return RenderCommandResult::Failure,
         };
 
+        let (lod, chunks) = entity.get(item.entity()).unwrap();
+
         let gpu_mesh_low = if let Some(lod) = &lod.mesh_handle {
             match meshes.get(lod) {
                 Some(gpu_mesh) => gpu_mesh,
@@ -115,7 +129,7 @@ impl<P: PhaseItem> RenderCommand<P> for DrawGrassInstanced {
 
         let grass_data_inner = grass_data.into_inner();
 
-        for (i, chunk) in chunks.0.iter().enumerate() {
+        for (_, chunk) in chunks.0.iter().enumerate() {
             let gpu_grass = match grass_data_inner.get(chunk.1.clone()) {
                 Some(gpu_grass) => gpu_grass,
                 None => return RenderCommandResult::Failure,

@@ -39,7 +39,7 @@ pub(super) fn grass_queue(
     let msaa_key = MeshPipelineKey::from_msaa_samples(msaa.samples());
     for (view, mut opaque_phase) in &mut views {
         let view_key = msaa_key | MeshPipelineKey::from_hdr(view.hdr);
-        let rangefinder = view.rangefinder3d();
+
         for entity in &material_meshes {
             let Some(mesh_instance) = render_mesh_instances.get(&entity) else {
                 continue;
@@ -55,10 +55,9 @@ pub(super) fn grass_queue(
                 entity,
                 pipeline,
                 draw_function: draw_custom,
-                distance: rangefinder
-                    .distance_translation(&mesh_instance.transforms.transform.translation),
                 batch_range: 0..1,
                 dynamic_offset: None,
+                asset_id: mesh_instance.mesh_asset_id,
             });
         }
     }
