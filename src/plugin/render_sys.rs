@@ -1,16 +1,20 @@
 use bevy::{
-    core_pipeline::core_3d::Opaque3d,
+    core_pipeline::core_3d::{Opaque3d, Opaque3dBinKey},
     pbr::{MeshPipelineKey, RenderMeshInstances},
     prelude::*,
     render::{
+        mesh::GpuMesh,
         render_asset::RenderAssets,
-        render_phase::{DrawFunctions, RenderPhase},
+        render_phase::{
+            BinnedPhaseItem, BinnedRenderPhaseType, DrawFunctions, PhaseItemExtraIndex,
+            ViewBinnedRenderPhases,
+        },
         render_resource::{
             BindGroupEntries, BindingResource, BufferBinding, BufferInitDescriptor, BufferUsages,
             PipelineCache, SpecializedMeshPipelines,
         },
         renderer::RenderDevice,
-        texture::FallbackImage,
+        texture::{FallbackImage, GpuImage},
         view::ExtractedView,
     },
 };
@@ -29,36 +33,44 @@ pub(super) fn grass_queue(
     msaa: Res<Msaa>,
     mut pipelines: ResMut<SpecializedMeshPipelines<GrassPipeline>>,
     pipeline_cache: Res<PipelineCache>,
-    meshes: Res<RenderAssets<Mesh>>,
+    meshes: Res<RenderAssets<GpuMesh>>,
     render_mesh_instances: Res<RenderMeshInstances>,
     material_meshes: Query<Entity, With<RenderGrassChunks>>,
-    mut views: Query<(&ExtractedView, &mut RenderPhase<Opaque3d>)>,
+    views: Query<(Entity, &ExtractedView)>,
+    mut phases: ResMut<ViewBinnedRenderPhases<Opaque3d>>,
 ) {
     let draw_custom = opaque_3d_draw_functions.read().id::<DrawGrass>();
 
     let msaa_key = MeshPipelineKey::from_msaa_samples(msaa.samples());
-    for (view, mut opaque_phase) in &mut views {
+    for (view_entity, view) in &views {
         let view_key = msaa_key | MeshPipelineKey::from_hdr(view.hdr);
+        if let Some(opaque_phase) = phases.get_mut(&view_entity) {
+            for entity in &material_meshes {
+                let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(entity)
+                else {
+                    continue;
+                };
+                let Some(mesh) = meshes.get(mesh_instance.mesh_asset_id) else {
+                    continue;
+                };
+                let key =
+                    view_key | MeshPipelineKey::from_primitive_topology(mesh.primitive_topology());
+                let pipeline = pipelines
+                    .specialize(&pipeline_cache, &custom_pipeline, key, &mesh.layout)
+                    .unwrap();
 
-        for entity in &material_meshes {
-            let Some(mesh_instance) = render_mesh_instances.get(&entity) else {
-                continue;
-            };
-            let Some(mesh) = meshes.get(mesh_instance.mesh_asset_id) else {
-                continue;
-            };
-            let key = view_key | MeshPipelineKey::from_primitive_topology(mesh.primitive_topology);
-            let pipeline = pipelines
-                .specialize(&pipeline_cache, &custom_pipeline, key, &mesh.layout)
-                .unwrap();
-            opaque_phase.add(Opaque3d {
-                entity,
-                pipeline,
-                draw_function: draw_custom,
-                batch_range: 0..1,
-                dynamic_offset: None,
-                asset_id: mesh_instance.mesh_asset_id,
-            });
+                opaque_phase.add(
+                    Opaque3dBinKey {
+                        pipeline,
+                        draw_function: draw_custom,
+                        asset_id: mesh_instance.mesh_asset_id.into(),
+                        material_bind_group_id: None,
+                        lightmap_image: None,
+                    },
+                    entity,
+                    BinnedRenderPhaseType::BatchableMesh,
+                );
+            }
         }
     }
 }
@@ -157,7 +169,7 @@ pub(super) fn prepare_global_wind_bind_group(
     wind: Res<GrassWind>,
     wind_buffer: Res<WindBuffer>,
     fallback_img: Res<FallbackImage>,
-    images: Res<RenderAssets<Image>>,
+    images: Res<RenderAssets<GpuImage>>,
 ) {
     let layout = pipeline.wind_layout.clone();
 
@@ -189,7 +201,7 @@ pub(super) fn prepare_local_wind_bind_group(
     render_device: Res<RenderDevice>,
     query: Query<(Entity, &GrassWind, &WindBuffer)>,
     fallback_img: Res<FallbackImage>,
-    images: Res<RenderAssets<Image>>,
+    images: Res<RenderAssets<GpuImage>>,
 ) {
     let layout = pipeline.wind_layout.clone();
 

@@ -24,9 +24,9 @@ fn setup(
 ) {
     let terrain = commands
         .spawn(PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Plane::default())),
+            mesh: meshes.add(Plane3d::default()),
             material: materials.add(StandardMaterial {
-                base_color: Color::rgb(0.0, 0.05, 0.0),
+                base_color: Color::srgb(0.0, 0.05, 0.0),
                 reflectance: 0.0,
 
                 ..default()
@@ -49,7 +49,7 @@ fn setup(
 
     commands.spawn((
         PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+            mesh: meshes.add(Cuboid::default()),
             material: materials.add(StandardMaterial::from(Color::WHITE)),
             transform: Transform::from_translation(Vec3::new(0.0, 2.0, 0.0))
                 .with_scale(Vec3::new(1.0, 5.0, 1.0)),

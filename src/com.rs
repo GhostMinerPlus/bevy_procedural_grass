@@ -13,7 +13,7 @@ use rand::Rng;
 use crate::{
     assets::GrassData,
     bean::{CullDimension, GrassRenderInfo, Wind},
-    res::GrassConfig,
+    res::GrassConfig, util,
 };
 
 pub use crate::plugin::render_com::*;
@@ -223,9 +223,9 @@ pub struct GrassColor {
 impl GrassColor {
     pub fn to_array(&self) -> [[f32; 4]; 3] {
         [
-            self.ao.as_linear_rgba_f32(),
-            self.color_1.as_linear_rgba_f32(),
-            self.color_2.as_linear_rgba_f32(),
+            util::liner2arr(self.ao.to_linear()),
+            util::liner2arr(self.color_1.to_linear()),
+            util::liner2arr(self.color_2.to_linear()),
         ]
     }
 }
@@ -233,9 +233,9 @@ impl GrassColor {
 impl Default for GrassColor {
     fn default() -> Self {
         Self {
-            ao: Color::rgba_from_array([0.01, 0.02, 0.05, 1.0]),
-            color_1: Color::rgba_from_array([0.1, 0.23, 0.09, 1.0]),
-            color_2: Color::rgba_from_array([0.12, 0.39, 0.15, 1.0]),
+            ao: Color::linear_rgba(0.01, 0.02, 0.05, 1.0),
+            color_1: Color::linear_rgba(0.1, 0.23, 0.09, 1.0),
+            color_2: Color::linear_rgba(0.12, 0.39, 0.15, 1.0),
         }
     }
 }

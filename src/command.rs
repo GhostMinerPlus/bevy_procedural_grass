@@ -7,9 +7,8 @@ use bevy::{
         },
     },
     pbr::{RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup},
-    prelude::*,
     render::{
-        mesh::GpuBufferInfo,
+        mesh::{GpuBufferInfo, GpuMesh},
         render_asset::RenderAssets,
         render_phase::{
             PhaseItem, RenderCommand, RenderCommandResult, SetItemPipeline, TrackedRenderPass,
@@ -19,8 +18,8 @@ use bevy::{
 };
 
 use crate::{
-    bean::GrassLOD,
-    com::{BufferBindGroup, Grass, GrassChunkData, GrassLODMesh, GrassWind, RenderGrassChunks},
+    bean::{GrassChunkBuffer, GrassLOD},
+    com::{BufferBindGroup, Grass, GrassLODMesh, GrassWind, RenderGrassChunks},
 };
 
 pub type DrawGrass = (
@@ -47,10 +46,7 @@ impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetGrassBindGroup<I> {
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
         let Some(bind_group) = bind_groups.get(item.entity()).ok() else {
-            log::warn!(
-                "Grass bind group not found for entity: {:?}",
-                item.entity()
-            );
+            log::warn!("Grass bind group not found for entity: {:?}", item.entity());
             return RenderCommandResult::Failure;
         };
 
@@ -89,10 +85,10 @@ pub struct DrawGrassInstanced;
 
 impl<P: PhaseItem> RenderCommand<P> for DrawGrassInstanced {
     type Param = (
-        SRes<RenderAssets<Mesh>>,
+        SRes<RenderAssets<GpuMesh>>,
         SRes<RenderMeshInstances>,
-        SRes<RenderAssets<GrassChunkData>>,
-        SQuery<(Read<GrassLODMesh>, Read<RenderGrassChunks>)>
+        SRes<RenderAssets<GrassChunkBuffer>>,
+        SQuery<(Read<GrassLODMesh>, Read<RenderGrassChunks>)>,
     );
     type ViewQuery = ();
     type ItemQuery = ();
@@ -105,7 +101,8 @@ impl<P: PhaseItem> RenderCommand<P> for DrawGrassInstanced {
         (meshes, render_mesh_instances, grass_data, entity): SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        let Some(mesh_instance) = render_mesh_instances.get(&item.entity()) else {
+        let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(item.entity())
+        else {
             return RenderCommandResult::Failure;
         };
 
@@ -130,7 +127,7 @@ impl<P: PhaseItem> RenderCommand<P> for DrawGrassInstanced {
         let grass_data_inner = grass_data.into_inner();
 
         for (_, chunk) in chunks.0.iter().enumerate() {
-            let gpu_grass = match grass_data_inner.get(chunk.1.clone()) {
+            let gpu_grass = match grass_data_inner.get(&chunk.1) {
                 Some(gpu_grass) => gpu_grass,
                 None => return RenderCommandResult::Failure,
             };

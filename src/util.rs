@@ -22,6 +22,10 @@ pub(crate) fn draw_chunk(gizmos: &mut Gizmos, chunk_coord: &(i32, i32, i32), chu
 
     gizmos.cuboid(
         aabb_transform(aabb.clone(), GlobalTransform::IDENTITY),
-        Color::RED,
+        Color::linear_rgba(1.0, 0.0, 0.0, 1.0),
     );
+}
+
+pub(crate) const fn liner2arr(lc: LinearRgba) -> [f32; 4] {
+    [lc.red, lc.green, lc.blue, lc.alpha]
 }

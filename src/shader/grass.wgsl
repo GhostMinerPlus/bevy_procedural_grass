@@ -3,16 +3,15 @@
 #import bevy_pbr::mesh_view_bindings::globals
 #import bevy_pbr::mesh_view_bindings::lights
 #import bevy_pbr::mesh_view_bindings::view
-#import bevy_pbr::utils::PI
-#import bevy_pbr::utils::random1D
+#import bevy_render::maths::PI
 #import bevy_pbr::pbr_types
 #import bevy_pbr::pbr_functions
 #import bevy_pbr::shadows
 
 struct Vertex {
     @location(0) position: vec3<f32>,
+    //
     @location(2) uv: vec2<f32>,
-
     @location(3) i_pos: vec3<f32>,
     @location(4) i_normal: vec3<f32>,
     @location(5) i_chunk_uvw: vec3<f32>,
@@ -62,6 +61,10 @@ struct VertexOutput {
     @location(4) world_normal: vec3<f32>,
     @location(5) bezier_tangent: vec3<f32>,
 };
+
+fn random1D(s: f32) -> f32 {
+    return fract(sin(s * 12.9898) * 43758.5453123);
+}
 
 @vertex
 fn vertex(vertex: Vertex) -> VertexOutput {
@@ -177,10 +180,10 @@ fn fragment(in: VertexOutput, @builtin(front_facing) is_front: bool) -> @locatio
     var backlight_color = vec4<f32>(0.0, 0.0, 0.0, 0.0);
 
     let view_z = dot(vec4<f32>(
-        view.inverse_view[0].z,
-        view.inverse_view[1].z,
-        view.inverse_view[2].z,
-        view.inverse_view[3].z
+        view.view_from_world[0].z,
+        view.view_from_world[1].z,
+        view.view_from_world[2].z,
+        view.view_from_world[3].z
     ), vec4<f32>(in.world_position, 1.0));
 
     let n_directional_lights = lights.n_directional_lights;

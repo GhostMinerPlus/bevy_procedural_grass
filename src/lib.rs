@@ -52,7 +52,7 @@ impl Plugin for ProceduralGrassPlugin {
             .add_systems(PostStartup, sys::generate_grass)
             .add_systems(Update, sys::grass_culling)
             .init_asset::<com::GrassChunkData>()
-            .add_plugins(RenderAssetPlugin::<com::GrassChunkData>::default())
+            .add_plugins(RenderAssetPlugin::<bean::GrassChunkBuffer>::default())
             .add_plugins((
                 ExtractComponentPlugin::<com::Grass>::default(),
                 ExtractComponentPlugin::<com::GrassChunks>::default(),

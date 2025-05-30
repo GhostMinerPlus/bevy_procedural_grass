@@ -22,11 +22,7 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    let terrain_mesh = Mesh::try_from(shape::Icosphere {
-        radius: 1.0,
-        subdivisions: 20,
-    })
-    .unwrap();
+    let terrain_mesh = Sphere::new(1.0);
 
     let terrain = commands
         .spawn((PbrBundle {
@@ -62,11 +58,7 @@ fn setup(
 
     commands.spawn((
         PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Cylinder {
-                radius: 0.75,
-                height: 4.0,
-                ..default()
-            })),
+            mesh: meshes.add(Cylinder::new(0.75, 4.0)),
             material: materials.add(StandardMaterial::from(Color::WHITE)),
             transform: Transform::from_translation(Vec3::new(0.0, 2.0, 0.0)),
             ..default()

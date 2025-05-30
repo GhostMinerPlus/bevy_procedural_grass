@@ -1,4 +1,8 @@
-use bevy::{log::LogPlugin, prelude::*, render::mesh::VertexAttributeValues};
+use bevy::{
+    log::LogPlugin,
+    prelude::*,
+    render::mesh::{PlaneMeshBuilder, VertexAttributeValues},
+};
 use bevy_procedural_grass::{
     bean::{GrassMesh, Wind},
     com::{Grass, GrassBundle, GrassLODMesh, GrassWind},
@@ -36,10 +40,9 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    let mut terrain_mesh = Mesh::from(shape::Plane {
-        size: 100.0,
-        subdivisions: 100,
-    });
+    let mut terrain_mesh = PlaneMeshBuilder::new(Dir3::Y, Vec2::splat(100.0))
+        .subdivisions(100)
+        .build();
     if let Some(positions) = terrain_mesh.attribute_mut(Mesh::ATTRIBUTE_POSITION) {
         if let VertexAttributeValues::Float32x3(positions) = positions {
             for position in positions.iter_mut() {
@@ -55,9 +58,8 @@ fn setup(
         .spawn((PbrBundle {
             mesh: meshes.add(terrain_mesh),
             material: materials.add(StandardMaterial {
-                base_color: Color::rgb(0.0, 0.05, 0.0),
+                base_color: Color::srgb(0.0, 0.05, 0.0),
                 reflectance: 0.0,
-
                 ..default()
             }),
             transform: Transform::from_scale(Vec3::new(1.0, 3.0, 1.0)),
@@ -76,11 +78,7 @@ fn setup(
     });
 
     commands.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(shape::Cylinder {
-            radius: 0.75,
-            height: 4.0,
-            ..default()
-        })),
+        mesh: meshes.add(Cylinder::new(0.75, 4.0)),
         material: materials.add(StandardMaterial::from(Color::WHITE)),
         transform: Transform::from_translation(Vec3::new(0.0, 2.0, 0.0)),
         ..default()
