@@ -1,6 +1,10 @@
 use bevy::prelude::*;
 use bevy_flycam::PlayerPlugin;
-use bevy_procedural_grass::{bean::displacement::GrassDisplacer, prelude::*};
+use bevy_procedural_grass::{
+    bean::GrassMesh,
+    com::{Grass, GrassBundle, GrassLODMesh},
+    prelude::*,
+};
 
 fn main() {
     App::new()
@@ -51,10 +55,10 @@ fn setup(
                 .with_scale(Vec3::new(1.0, 5.0, 1.0)),
             ..default()
         },
-        GrassDisplacer {
-            width: 15.,
-            base_offset: Vec3::new(0.0, -2.0, 0.0),
-        },
+        // GrassDisplacer {
+        //     width: 15.,
+        //     base_offset: Vec3::new(0.0, -2.0, 0.0),
+        // },
     ));
 
     commands.spawn(DirectionalLightBundle {

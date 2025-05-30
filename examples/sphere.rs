@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_flycam::PlayerPlugin;
 use bevy_procedural_grass::{
+    bean::GrassMesh,
     com::{Grass, GrassBundle},
     prelude::*,
 };
@@ -70,9 +71,9 @@ fn setup(
             transform: Transform::from_translation(Vec3::new(0.0, 2.0, 0.0)),
             ..default()
         },
-        GrassDisplacer {
-            width: 15.,
-            base_offset: Vec3::new(0., -2., 0.),
-        },
+        // GrassDisplacer {
+        //     width: 15.,
+        //     base_offset: Vec3::new(0., -2., 0.),
+        // },
     ));
 }
