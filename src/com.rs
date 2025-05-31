@@ -240,16 +240,13 @@ impl Default for GrassColor {
     }
 }
 
-#[derive(Bundle, Default)]
-pub struct GrassBundle {
-    pub mesh: Handle<Mesh>,
-    pub lod: GrassLODMesh,
-    pub grass: Grass,
-    pub grass_chunks: GrassChunks,
-    #[bundle()]
-    pub spatial: SpatialBundle,
-    pub frustum_culling: NoFrustumCulling,
-}
+// #[derive(Bundle, Default)]
+// pub struct GrassBundle {
+//     pub mesh: Handle<Mesh>,
+//     pub lod: GrassLODMesh,
+//     pub grass: Grass,
+//     pub grass_chunks: GrassChunks,
+// }
 
 #[derive(Component, Default, Clone)]
 pub struct GrassLODMesh {

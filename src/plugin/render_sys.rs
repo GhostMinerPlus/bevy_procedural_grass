@@ -3,17 +3,15 @@ use bevy::{
     pbr::{MeshPipelineKey, RenderMeshInstances},
     prelude::*,
     render::{
-        mesh::GpuMesh,
+        mesh::RenderMesh,
         render_asset::RenderAssets,
-        render_phase::{
-            BinnedPhaseItem, BinnedRenderPhaseType, DrawFunctions, PhaseItemExtraIndex,
-            ViewBinnedRenderPhases,
-        },
+        render_phase::{BinnedRenderPhaseType, DrawFunctions, ViewBinnedRenderPhases},
         render_resource::{
             BindGroupEntries, BindingResource, BufferBinding, BufferInitDescriptor, BufferUsages,
             PipelineCache, SpecializedMeshPipelines,
         },
         renderer::RenderDevice,
+        sync_world::MainEntity,
         texture::{FallbackImage, GpuImage},
         view::ExtractedView,
     },
@@ -30,23 +28,24 @@ use super::render_com::{BufferBindGroup, GrassBuffer, WindBuffer};
 pub(super) fn grass_queue(
     opaque_3d_draw_functions: Res<DrawFunctions<Opaque3d>>,
     custom_pipeline: Res<GrassPipeline>,
-    msaa: Res<Msaa>,
+    msaa: Query<&Msaa>,
     mut pipelines: ResMut<SpecializedMeshPipelines<GrassPipeline>>,
     pipeline_cache: Res<PipelineCache>,
-    meshes: Res<RenderAssets<GpuMesh>>,
+    meshes: Res<RenderAssets<RenderMesh>>,
     render_mesh_instances: Res<RenderMeshInstances>,
-    material_meshes: Query<Entity, With<RenderGrassChunks>>,
+    material_meshes: Query<(Entity, MainEntity), With<RenderGrassChunks>>,
     views: Query<(Entity, &ExtractedView)>,
     mut phases: ResMut<ViewBinnedRenderPhases<Opaque3d>>,
 ) {
     let draw_custom = opaque_3d_draw_functions.read().id::<DrawGrass>();
 
-    let msaa_key = MeshPipelineKey::from_msaa_samples(msaa.samples());
+    let msaa_key = MeshPipelineKey::from_msaa_samples(msaa.single().samples());
     for (view_entity, view) in &views {
         let view_key = msaa_key | MeshPipelineKey::from_hdr(view.hdr);
         if let Some(opaque_phase) = phases.get_mut(&view_entity) {
-            for entity in &material_meshes {
-                let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(entity)
+            for (entity, main_entity) in &material_meshes {
+                let Some(mesh_instance) =
+                    render_mesh_instances.render_mesh_queue_data(MainEntity::from(main_entity))
                 else {
                     continue;
                 };
@@ -67,7 +66,7 @@ pub(super) fn grass_queue(
                         material_bind_group_id: None,
                         lightmap_image: None,
                     },
-                    entity,
+                    (entity, MainEntity::from(main_entity)),
                     BinnedRenderPhaseType::BatchableMesh,
                 );
             }

@@ -1,11 +1,11 @@
 use bevy::{
     log::LogPlugin,
     prelude::*,
-    render::mesh::{PlaneMeshBuilder, VertexAttributeValues},
+    render::{mesh::{PlaneMeshBuilder, VertexAttributeValues}, view::NoFrustumCulling},
 };
 use bevy_procedural_grass::{
     bean::{GrassMesh, Wind},
-    com::{Grass, GrassBundle, GrassLODMesh, GrassWind},
+    com::{Grass, GrassChunks, GrassColor, GrassLODMesh, GrassWind},
     prelude::*,
     res::GrassConfig,
 };
@@ -55,34 +55,35 @@ fn setup(
     }
 
     let terrain = commands
-        .spawn((PbrBundle {
-            mesh: meshes.add(terrain_mesh),
-            material: materials.add(StandardMaterial {
+        .spawn((
+            Mesh3d(meshes.add(terrain_mesh)),
+            MeshMaterial3d(materials.add(StandardMaterial {
                 base_color: Color::srgb(0.0, 0.05, 0.0),
                 reflectance: 0.0,
                 ..default()
-            }),
-            transform: Transform::from_scale(Vec3::new(1.0, 3.0, 1.0)),
-            ..default()
-        },))
+            })),
+            Transform::from_scale(Vec3::new(1.0, 3.0, 1.0)),
+        ))
         .id();
 
-    commands.spawn(GrassBundle {
-        mesh: meshes.add(GrassMesh::mesh(7)),
-        lod: GrassLODMesh::new(meshes.add(GrassMesh::mesh(3))),
-        grass: Grass {
+    commands.spawn((
+        Mesh3d(meshes.add(GrassMesh::mesh(7))),
+        GrassLODMesh::new(meshes.add(GrassMesh::mesh(3))),
+        Grass {
             entity: Some(terrain.clone()),
             ..default()
         },
-        ..default()
-    });
+        NoFrustumCulling::default(),
+        Transform::IDENTITY,
+        GrassChunks::default(),
+        GrassColor::default(),
+    ));
 
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(Cylinder::new(0.75, 4.0)),
-        material: materials.add(StandardMaterial::from(Color::WHITE)),
-        transform: Transform::from_translation(Vec3::new(0.0, 2.0, 0.0)),
-        ..default()
-    });
+    commands.spawn((
+        Mesh3d(meshes.add(Cylinder::new(0.75, 4.0))),
+        MeshMaterial3d(materials.add(StandardMaterial::from(Color::WHITE))),
+        Transform::from_translation(Vec3::new(0.0, 2.0, 0.0)),
+    ));
 
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {

@@ -16,7 +16,7 @@ pub(super) fn create_wind_map(mut wind: ResMut<GrassWind>, asset_server: Res<Ass
 
 pub(super) fn generate_grass(
     mut query: Query<(&Grass, &mut GrassChunks)>,
-    mesh_entity_query: Query<(&Transform, &Handle<Mesh>)>,
+    mesh_entity_query: Query<(&Transform, &Mesh3d)>,
     meshes: Res<Assets<Mesh>>,
     asset_server: Res<AssetServer>,
     config: Res<GrassConfig>,

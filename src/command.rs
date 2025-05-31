@@ -8,12 +8,12 @@ use bevy::{
     },
     pbr::{RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup},
     render::{
-        mesh::{GpuBufferInfo, GpuMesh},
+        mesh::{allocator::MeshAllocator, RenderMesh, RenderMeshBufferInfo},
         render_asset::RenderAssets,
         render_phase::{
             PhaseItem, RenderCommand, RenderCommandResult, SetItemPipeline, TrackedRenderPass,
         },
-        render_resource::BindGroup,
+        render_resource::{BindGroup, Buffer},
     },
 };
 
@@ -46,8 +46,7 @@ impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetGrassBindGroup<I> {
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
         let Some(bind_group) = bind_groups.get(item.entity()).ok() else {
-            log::warn!("Grass bind group not found for entity: {:?}", item.entity());
-            return RenderCommandResult::Failure;
+            return RenderCommandResult::Failure("Grass bind group not found for entity");
         };
 
         let bind_group = unsafe { &*(&bind_group.bind_group as *const BindGroup) };
@@ -85,10 +84,11 @@ pub struct DrawGrassInstanced;
 
 impl<P: PhaseItem> RenderCommand<P> for DrawGrassInstanced {
     type Param = (
-        SRes<RenderAssets<GpuMesh>>,
+        SRes<RenderAssets<RenderMesh>>,
         SRes<RenderMeshInstances>,
         SRes<RenderAssets<GrassChunkBuffer>>,
         SQuery<(Read<GrassLODMesh>, Read<RenderGrassChunks>)>,
+        SRes<MeshAllocator>,
     );
     type ViewQuery = ();
     type ItemQuery = ();
@@ -98,27 +98,31 @@ impl<P: PhaseItem> RenderCommand<P> for DrawGrassInstanced {
         item: &P,
         _view: (),
         _entity: Option<ROQueryItem<'w, Self::ItemQuery>>,
-        (meshes, render_mesh_instances, grass_data, entity): SystemParamItem<'w, '_, Self::Param>,
+        (meshes, render_mesh_instances, grass_data, grass_set, ma): SystemParamItem<
+            'w,
+            '_,
+            Self::Param,
+        >,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(item.entity())
+        let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(item.main_entity())
         else {
-            return RenderCommandResult::Failure;
+            return RenderCommandResult::Failure("Mesh instance not found for entity");
         };
 
         let meshes = meshes.into_inner();
 
         let gpu_mesh_high = match meshes.get(mesh_instance.mesh_asset_id) {
             Some(gpu_mesh) => gpu_mesh,
-            None => return RenderCommandResult::Failure,
+            None => return RenderCommandResult::Failure("GPU mesh not found for entity"),
         };
 
-        let (lod, chunks) = entity.get(item.entity()).unwrap();
+        let (lod, chunks) = grass_set.get(item.entity()).unwrap();
 
         let gpu_mesh_low = if let Some(lod) = &lod.mesh_handle {
             match meshes.get(lod) {
                 Some(gpu_mesh) => gpu_mesh,
-                None => return RenderCommandResult::Failure,
+                None => return RenderCommandResult::Failure("GPU mesh low not found for entity"),
             }
         } else {
             gpu_mesh_high
@@ -129,27 +133,46 @@ impl<P: PhaseItem> RenderCommand<P> for DrawGrassInstanced {
         for (_, chunk) in chunks.0.iter().enumerate() {
             let gpu_grass = match grass_data_inner.get(&chunk.1) {
                 Some(gpu_grass) => gpu_grass,
-                None => return RenderCommandResult::Failure,
+                None => return RenderCommandResult::Failure("GPU grass data not found for chunk"),
             };
 
-            let gpu_mesh = match chunk.0 {
-                GrassLOD::Low => &gpu_mesh_low,
-                GrassLOD::High => &gpu_mesh_high,
+            let (gpu_mesh, mesh_id) = match chunk.0 {
+                GrassLOD::Low => (&gpu_mesh_low, lod.mesh_handle.clone().unwrap().id()),
+                GrassLOD::High => (&gpu_mesh_high, mesh_instance.mesh_asset_id),
             };
 
-            pass.set_vertex_buffer(0, gpu_mesh.vertex_buffer.slice(..));
+            let vertex_buffer_slice = ma.mesh_vertex_slice(&mesh_id).unwrap();
+
+            let vertex_buffer = unsafe { &*(vertex_buffer_slice.buffer as *const Buffer) };
+
+            pass.set_vertex_buffer(
+                0,
+                vertex_buffer.slice(
+                    vertex_buffer_slice.range.start as u64..vertex_buffer_slice.range.end as u64,
+                ),
+            );
             pass.set_vertex_buffer(1, gpu_grass.buffer.slice(..));
 
             match &gpu_mesh.buffer_info {
-                GpuBufferInfo::Indexed {
-                    buffer,
+                RenderMeshBufferInfo::Indexed {
                     index_format,
                     count,
                 } => {
-                    pass.set_index_buffer(buffer.slice(..), 0, *index_format);
+                    let index_buffer_slice = ma.mesh_index_slice(&mesh_id).unwrap();
+
+                    let index_buffer = unsafe { &*(index_buffer_slice.buffer as *const Buffer) };
+
+                    pass.set_index_buffer(
+                        index_buffer.slice(
+                            index_buffer_slice.range.start as u64
+                                ..index_buffer_slice.range.end as u64,
+                        ),
+                        0,
+                        *index_format,
+                    );
                     pass.draw_indexed(0..*count, 0, 0..gpu_grass.length as u32);
                 }
-                GpuBufferInfo::NonIndexed => {
+                RenderMeshBufferInfo::NonIndexed => {
                     pass.draw(0..gpu_mesh.vertex_count, 0..gpu_grass.length as u32);
                 }
             }
