@@ -1,11 +1,14 @@
 use bevy::{
     log::LogPlugin,
     prelude::*,
-    render::{mesh::{PlaneMeshBuilder, VertexAttributeValues}, view::NoFrustumCulling},
+    render::{
+        mesh::{PlaneMeshBuilder, VertexAttributeValues},
+        view::NoIndirectDrawing,
+    },
 };
 use bevy_procedural_grass::{
     bean::{GrassMesh, Wind},
-    com::{Grass, GrassChunks, GrassColor, GrassLODMesh, GrassWind},
+    com::{Grass, GrassLODMesh, GrassWind},
     prelude::*,
     res::GrassConfig,
 };
@@ -67,16 +70,12 @@ fn setup(
         .id();
 
     commands.spawn((
-        Mesh3d(meshes.add(GrassMesh::mesh(7))),
-        GrassLODMesh::new(meshes.add(GrassMesh::mesh(3))),
         Grass {
             entity: Some(terrain.clone()),
             ..default()
         },
-        NoFrustumCulling::default(),
-        Transform::IDENTITY,
-        GrassChunks::default(),
-        GrassColor::default(),
+        Mesh3d(meshes.add(GrassMesh::mesh(7))),
+        GrassLODMesh::new(meshes.add(GrassMesh::mesh(3))),
     ));
 
     commands.spawn((
@@ -85,20 +84,19 @@ fn setup(
         Transform::from_translation(Vec3::new(0.0, 2.0, 0.0)),
     ));
 
-    commands.spawn(DirectionalLightBundle {
-        directional_light: DirectionalLight {
+    commands.spawn((
+        DirectionalLight {
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_rotation(Quat::from_xyzw(
+        Transform::from_rotation(Quat::from_xyzw(
             -0.4207355, -0.4207355, 0.22984886, 0.77015114,
         )),
-        ..default()
-    });
+    ));
 
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(-2.5, 4.5, 9.0)
-            .looking_at(Vec3::new(2.5, 3.5, 0.0), Vec3::Y),
-        ..default()
-    });
+    commands.spawn((
+        Camera3d::default(),
+        Transform::from_xyz(-2.5, 4.5, 9.0).looking_at(Vec3::new(2.5, 3.5, 0.0), Vec3::Y),
+        NoIndirectDrawing,
+    ));
 }

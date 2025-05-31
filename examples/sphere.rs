@@ -1,5 +1,4 @@
 use bevy::{prelude::*, render::view::NoFrustumCulling};
-use bevy_flycam::PlayerPlugin;
 use bevy_procedural_grass::{
     bean::GrassMesh,
     com::{Grass, GrassChunks, GrassColor},
@@ -10,7 +9,6 @@ fn main() {
     let mut app = App::new();
     app.add_plugins((
         DefaultPlugins,
-        PlayerPlugin,
         ProceduralGrassPlugin::default(), // add procedural grass plugin
     ))
     .add_systems(Startup, setup)
@@ -28,7 +26,7 @@ fn setup(
         .spawn((
             Mesh3d(meshes.add(terrain_mesh)),
             MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: Color::rgb(0.0, 0.05, 0.0),
+                base_color: Color::linear_rgb(0.0, 0.05, 0.0),
                 reflectance: 0.0,
                 ..Default::default()
             })),
@@ -50,13 +48,12 @@ fn setup(
         GrassColor::default(),
     ));
 
-    commands.spawn(DirectionalLightBundle {
-        directional_light: DirectionalLight::default(),
-        transform: Transform::from_rotation(Quat::from_xyzw(
+    commands.spawn((
+        DirectionalLight::default(),
+        Transform::from_rotation(Quat::from_xyzw(
             -0.4207355, -0.4207355, 0.22984886, 0.77015114,
         )),
-        ..default()
-    });
+    ));
 
     commands.spawn((
         Mesh3d(meshes.add(Cylinder::new(0.75, 4.0))),

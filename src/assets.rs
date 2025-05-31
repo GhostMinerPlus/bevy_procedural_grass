@@ -31,6 +31,7 @@ impl RenderAsset for GrassChunkBuffer {
 
     fn prepare_asset(
         source_asset: Self::SourceAsset,
+        _asset_id: AssetId<Self::SourceAsset>,
         param: &mut SystemParamItem<Self::Param>,
     ) -> Result<Self, PrepareAssetError<Self::SourceAsset>> {
         let render_device = param;

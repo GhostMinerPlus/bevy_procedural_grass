@@ -96,6 +96,7 @@ impl Default for Blade {
 #[derive(Component)]
 #[cfg_attr(feature = "bevy-inspector-egui", derive(Reflect, InspectorOptions))]
 #[cfg_attr(feature = "bevy-inspector-egui", reflect(InspectorOptions))]
+#[require(GrassChunks, Transform, Visibility, NoFrustumCulling)]
 pub struct Grass {
     pub entity: Option<Entity>,
     pub density: u32,
@@ -120,8 +121,8 @@ impl Grass {
         transform: &Transform,
         mesh: &Mesh,
         chunk_size: f32,
-        asset_server: &AssetServer,
-        config: &GrassConfig,
+        _asset_server: &AssetServer,
+        _config: &GrassConfig,
     ) -> HashMap<(i32, i32, i32), GrassChunkData> {
         let mut chunks: HashMap<(i32, i32, i32), GrassChunkData> = HashMap::new();
 
@@ -239,14 +240,6 @@ impl Default for GrassColor {
         }
     }
 }
-
-// #[derive(Bundle, Default)]
-// pub struct GrassBundle {
-//     pub mesh: Handle<Mesh>,
-//     pub lod: GrassLODMesh,
-//     pub grass: Grass,
-//     pub grass_chunks: GrassChunks,
-// }
 
 #[derive(Component, Default, Clone)]
 pub struct GrassLODMesh {

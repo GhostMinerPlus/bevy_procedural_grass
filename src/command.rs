@@ -13,7 +13,7 @@ use bevy::{
         render_phase::{
             PhaseItem, RenderCommand, RenderCommandResult, SetItemPipeline, TrackedRenderPass,
         },
-        render_resource::{BindGroup, Buffer},
+        render_resource::BindGroup,
     },
 };
 
@@ -46,6 +46,11 @@ impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetGrassBindGroup<I> {
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
         let Some(bind_group) = bind_groups.get(item.entity()).ok() else {
+            log::warn!(
+                "Grass bind group not found for entity: {:?}, {:?}",
+                item.entity(),
+                item.main_entity()
+            );
             return RenderCommandResult::Failure("Grass bind group not found for entity");
         };
 
@@ -105,6 +110,7 @@ impl<P: PhaseItem> RenderCommand<P> for DrawGrassInstanced {
         >,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
+        let ma = ma.into_inner();
         let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(item.main_entity())
         else {
             return RenderCommandResult::Failure("Mesh instance not found for entity");
@@ -143,14 +149,7 @@ impl<P: PhaseItem> RenderCommand<P> for DrawGrassInstanced {
 
             let vertex_buffer_slice = ma.mesh_vertex_slice(&mesh_id).unwrap();
 
-            let vertex_buffer = unsafe { &*(vertex_buffer_slice.buffer as *const Buffer) };
-
-            pass.set_vertex_buffer(
-                0,
-                vertex_buffer.slice(
-                    vertex_buffer_slice.range.start as u64..vertex_buffer_slice.range.end as u64,
-                ),
-            );
+            pass.set_vertex_buffer(0, vertex_buffer_slice.buffer.slice(..));
             pass.set_vertex_buffer(1, gpu_grass.buffer.slice(..));
 
             match &gpu_mesh.buffer_info {
@@ -160,20 +159,21 @@ impl<P: PhaseItem> RenderCommand<P> for DrawGrassInstanced {
                 } => {
                     let index_buffer_slice = ma.mesh_index_slice(&mesh_id).unwrap();
 
-                    let index_buffer = unsafe { &*(index_buffer_slice.buffer as *const Buffer) };
-
-                    pass.set_index_buffer(
-                        index_buffer.slice(
-                            index_buffer_slice.range.start as u64
-                                ..index_buffer_slice.range.end as u64,
-                        ),
-                        0,
-                        *index_format,
+                    pass.set_index_buffer(index_buffer_slice.buffer.slice(..), 0, *index_format);
+                    pass.draw_indexed(
+                        index_buffer_slice.range.start..(index_buffer_slice.range.start + count),
+                        index_buffer_slice.range.start as i32,
+                        0..gpu_grass.length as u32,
                     );
-                    pass.draw_indexed(0..*count, 0, 0..gpu_grass.length as u32);
+                    log::debug!(
+                        "Drawing indexed grass mesh: {:?}, count: {}, length: {}",
+                        mesh_instance.mesh_asset_id,
+                        count,
+                        gpu_grass.length
+                    );
                 }
                 RenderMeshBufferInfo::NonIndexed => {
-                    pass.draw(0..gpu_mesh.vertex_count, 0..gpu_grass.length as u32);
+                    pass.draw(vertex_buffer_slice.range, 0..gpu_grass.length as u32);
                 }
             }
         }

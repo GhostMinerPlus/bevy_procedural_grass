@@ -1,10 +1,8 @@
 use bevy::{
-    core_pipeline::core_3d::Opaque3d,
-    prelude::*,
-    render::{
+    core_pipeline::core_3d::Transparent3d, prelude::*, render::{
         render_phase::AddRenderCommand, render_resource::SpecializedMeshPipelines, Render,
         RenderApp, RenderSet,
-    },
+    }
 };
 
 use crate::{command::DrawGrass, pipeline::GrassPipeline};
@@ -17,7 +15,7 @@ pub struct RenderPlugin;
 impl Plugin for RenderPlugin {
     fn build(&self, app: &mut App) {
         app.sub_app_mut(RenderApp)
-            .add_render_command::<Opaque3d, DrawGrass>()
+            .add_render_command::<Transparent3d, DrawGrass>()
             .init_resource::<SpecializedMeshPipelines<GrassPipeline>>()
             .add_systems(
                 Render,

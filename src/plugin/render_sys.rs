@@ -1,11 +1,11 @@
 use bevy::{
-    core_pipeline::core_3d::{Opaque3d, Opaque3dBinKey},
+    core_pipeline::core_3d::Transparent3d,
     pbr::{MeshPipelineKey, RenderMeshInstances},
     prelude::*,
     render::{
         mesh::RenderMesh,
         render_asset::RenderAssets,
-        render_phase::{BinnedRenderPhaseType, DrawFunctions, ViewBinnedRenderPhases},
+        render_phase::{DrawFunctions, PhaseItemExtraIndex, ViewSortedRenderPhases},
         render_resource::{
             BindGroupEntries, BindingResource, BufferBinding, BufferInitDescriptor, BufferUsages,
             PipelineCache, SpecializedMeshPipelines,
@@ -26,49 +26,54 @@ use crate::{
 use super::render_com::{BufferBindGroup, GrassBuffer, WindBuffer};
 
 pub(super) fn grass_queue(
-    opaque_3d_draw_functions: Res<DrawFunctions<Opaque3d>>,
+    opaque_3d_draw_functions: Res<DrawFunctions<Transparent3d>>,
     custom_pipeline: Res<GrassPipeline>,
-    msaa: Query<&Msaa>,
     mut pipelines: ResMut<SpecializedMeshPipelines<GrassPipeline>>,
     pipeline_cache: Res<PipelineCache>,
     meshes: Res<RenderAssets<RenderMesh>>,
     render_mesh_instances: Res<RenderMeshInstances>,
-    material_meshes: Query<(Entity, MainEntity), With<RenderGrassChunks>>,
-    views: Query<(Entity, &ExtractedView)>,
-    mut phases: ResMut<ViewBinnedRenderPhases<Opaque3d>>,
+    views: Query<(&ExtractedView, &Msaa)>,
+    grass_set: Query<(Entity, &MainEntity), With<RenderGrassChunks>>,
+    mut phases: ResMut<ViewSortedRenderPhases<Transparent3d>>,
 ) {
     let draw_custom = opaque_3d_draw_functions.read().id::<DrawGrass>();
 
-    let msaa_key = MeshPipelineKey::from_msaa_samples(msaa.single().samples());
-    for (view_entity, view) in &views {
-        let view_key = msaa_key | MeshPipelineKey::from_hdr(view.hdr);
-        if let Some(opaque_phase) = phases.get_mut(&view_entity) {
-            for (entity, main_entity) in &material_meshes {
+    for (view, msaa) in &views {
+        if let Some(transparent_phase) = phases.get_mut(&view.retained_view_entity) {
+            let view_key = MeshPipelineKey::from_msaa_samples(msaa.samples())
+                | MeshPipelineKey::from_hdr(view.hdr);
+
+            let rangefinder = view.rangefinder3d();
+            for (entity, main_entity) in grass_set {
                 let Some(mesh_instance) =
-                    render_mesh_instances.render_mesh_queue_data(MainEntity::from(main_entity))
+                    render_mesh_instances.render_mesh_queue_data(*main_entity)
                 else {
                     continue;
                 };
                 let Some(mesh) = meshes.get(mesh_instance.mesh_asset_id) else {
                     continue;
                 };
+
                 let key =
                     view_key | MeshPipelineKey::from_primitive_topology(mesh.primitive_topology());
                 let pipeline = pipelines
                     .specialize(&pipeline_cache, &custom_pipeline, key, &mesh.layout)
                     .unwrap();
 
-                opaque_phase.add(
-                    Opaque3dBinKey {
-                        pipeline,
-                        draw_function: draw_custom,
-                        asset_id: mesh_instance.mesh_asset_id.into(),
-                        material_bind_group_id: None,
-                        lightmap_image: None,
-                    },
-                    (entity, MainEntity::from(main_entity)),
-                    BinnedRenderPhaseType::BatchableMesh,
+                log::debug!(
+                    "Queuing grass mesh for entity: {:?}, {:?}",
+                    entity,
+                    main_entity
                 );
+                transparent_phase.add(Transparent3d {
+                    entity: (entity, *main_entity),
+                    pipeline,
+                    draw_function: draw_custom,
+                    distance: rangefinder.distance_translation(&mesh_instance.translation),
+                    batch_range: 0..1,
+                    extra_index: PhaseItemExtraIndex::None,
+                    indexed: true,
+                });
             }
         }
     }
@@ -158,6 +163,7 @@ pub(super) fn prepare_grass_bind_group(
         commands
             .entity(entity)
             .insert(BufferBindGroup::<Grass>::new(bind_group));
+        log::debug!("Created grass bind group for entity: {:?}", entity);
     }
 }
 

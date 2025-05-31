@@ -1,5 +1,4 @@
 use bevy::{prelude::*, render::view::NoFrustumCulling};
-use bevy_flycam::PlayerPlugin;
 use bevy_procedural_grass::{
     bean::GrassMesh,
     com::{Grass, GrassChunks, GrassColor, GrassLODMesh},
@@ -10,7 +9,6 @@ fn main() {
     App::new()
         .add_plugins((
             DefaultPlugins,
-            PlayerPlugin,
             ProceduralGrassPlugin::default(), // add grass plugin
         ))
         .add_systems(Startup, setup)
@@ -59,14 +57,13 @@ fn setup(
         // },
     ));
 
-    commands.spawn(DirectionalLightBundle {
-        directional_light: DirectionalLight {
+    commands.spawn((
+        DirectionalLight {
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_rotation(Quat::from_xyzw(
+        Transform::from_rotation(Quat::from_xyzw(
             -0.4207355, -0.4207355, 0.22984886, 0.77015114,
         )),
-        ..default()
-    });
+    ));
 }
