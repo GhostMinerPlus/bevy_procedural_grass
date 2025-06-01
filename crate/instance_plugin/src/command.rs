@@ -1,10 +1,15 @@
 use bevy::{
-    ecs::system::{lifetimeless::{Read, SRes}, SystemParamItem},
+    ecs::system::{
+        SystemParamItem,
+        lifetimeless::{Read, SRes},
+    },
     pbr::{RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup},
     render::{
-        mesh::{allocator::MeshAllocator, RenderMesh, RenderMeshBufferInfo},
+        mesh::{RenderMesh, RenderMeshBufferInfo, allocator::MeshAllocator},
         render_asset::RenderAssets,
-        render_phase::{PhaseItem, RenderCommand, RenderCommandResult, SetItemPipeline, TrackedRenderPass},
+        render_phase::{
+            PhaseItem, RenderCommand, RenderCommandResult, SetItemPipeline, TrackedRenderPass,
+        },
     },
 };
 

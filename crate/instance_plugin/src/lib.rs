@@ -7,7 +7,6 @@ use bevy::{
 mod command;
 mod pipeline;
 mod plugin;
-mod sys;
 
 pub mod bean;
 pub mod com;

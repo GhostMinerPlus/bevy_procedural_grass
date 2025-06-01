@@ -1,5 +1,5 @@
 use bevy::{
-    asset::load_internal_asset,
+    asset::{load_internal_asset, weak_handle},
     prelude::*,
     render::{
         extract_component::ExtractComponentPlugin, extract_resource::ExtractResourcePlugin,
@@ -23,7 +23,7 @@ pub mod prelude {
 }
 
 pub(crate) const GRASS_SHADER_HANDLE: Handle<Shader> =
-    Handle::weak_from_u128(195_094_223_228_228_028_086_047_086_167_255_040_126);
+    weak_handle!("92c5c7d8-a09a-c7d5-6f89-3a68fa2a407e");
 
 #[derive(Default, Clone)]
 pub struct ProceduralGrassPlugin {

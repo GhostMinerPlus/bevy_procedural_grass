@@ -10,8 +10,8 @@
 
 struct Vertex {
     @location(0) position: vec3<f32>,
-    //
     @location(2) uv: vec2<f32>,
+    // instance
     @location(3) i_pos: vec3<f32>,
     @location(4) i_normal: vec3<f32>,
     @location(5) i_chunk_uvw: vec3<f32>,
@@ -83,7 +83,7 @@ fn vertex(vertex: Vertex) -> VertexOutput {
 
     let random_point = vec2<f32>(fract(vertex.i_pos.x * 0.1 * hash_id), fract(vertex.i_pos.y * 0.1 * hash_id));
     let r = sample_wind_map(random_point, wind.speed).r;
-    
+
     var wind_pos = fract(vec2<f32>(vertex.i_pos.x, vertex.i_pos.z) / wind.scale);
     let sample = sample_wind_map(wind_pos, wind.speed).rgb;
     let t = unpack_float(sample);
@@ -101,7 +101,7 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     //let angle = xz_displacement.r * 2.0 * PI;
     //let displace_direction = vec2<f32>(-cos(angle), -sin(angle));
     //var displace_strength = xz_displacement.a * (1.0 - clamp(abs(xz_displacement.b - vertex.i_chunk_uvw.y) / (length / 30.0), 0.0, 1.0));
-    
+
     //xz += displace_direction * (length + blade.tilt) * displace_strength;
 
     xz += -wind_direction * (0.5 * (sin(t * wind.frequency))) * wind.amplitude;
@@ -136,11 +136,11 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     var normal = normalize(cross(tangent, vec3<f32>(blade_dir_normal.x, 0.0, blade_dir_normal.y)));
     normal = rotation_matrix * normal;
     out.normal = normal;
-    
+
     position += vertex.i_pos.xyz;
 
     out.clip_position = mesh_position_local_to_clip(
-        identity_matrix, 
+        identity_matrix,
         vec4<f32>(position, 1.0)
     );
 

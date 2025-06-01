@@ -4,8 +4,8 @@ use bevy::{
     render::{
         mesh::MeshVertexBufferLayoutRef,
         render_resource::{
-            BindGroupLayout, BindGroupLayoutEntry, BindingType,
-            BufferBindingType, RenderPipelineDescriptor, ShaderStages, SpecializedMeshPipeline,
+            BindGroupLayout, BindGroupLayoutEntry, BindingType, BufferBindingType,
+            RenderPipelineDescriptor, ShaderStages, SpecializedMeshPipeline,
             SpecializedMeshPipelineError, TextureSampleType, TextureViewDimension, VertexAttribute,
             VertexBufferLayout, VertexFormat, VertexStepMode,
         },
@@ -117,20 +117,21 @@ impl SpecializedMeshPipeline for GrassPipeline {
                 },
                 VertexAttribute {
                     format: VertexFormat::Float32x3,
-                    offset: std::mem::size_of::<[f32; 3]>() as u64,
+                    offset: VertexFormat::Float32x3.size(),
                     shader_location: 4,
                 },
                 VertexAttribute {
                     format: VertexFormat::Float32x3,
-                    offset: std::mem::size_of::<[f32; 6]>() as u64,
+                    offset: VertexFormat::Float32x3.size() + VertexFormat::Float32x3.size(),
                     shader_location: 5,
                 },
             ],
         });
+        descriptor.fragment.as_mut().unwrap().shader = self.shader.clone();
+        // layout
         descriptor.layout.push(self.grass_layout.clone());
         descriptor.layout.push(self.wind_layout.clone());
-
-        descriptor.fragment.as_mut().unwrap().shader = self.shader.clone();
+        //
         descriptor.primitive.cull_mode = None;
         Ok(descriptor)
     }

@@ -134,15 +134,15 @@ impl<P: PhaseItem> RenderCommand<P> for DrawGrassInstanced {
             gpu_mesh_high
         };
 
-        let grass_data_inner = grass_data.into_inner();
+        let grass_data = grass_data.into_inner();
 
-        for (_, chunk) in chunks.0.iter().enumerate() {
-            let gpu_grass = match grass_data_inner.get(&chunk.1) {
+        for (grass_lod, data_handle) in chunks.0.iter() {
+            let gpu_grass = match grass_data.get(data_handle) {
                 Some(gpu_grass) => gpu_grass,
                 None => return RenderCommandResult::Failure("GPU grass data not found for chunk"),
             };
 
-            let (gpu_mesh, mesh_id) = match chunk.0 {
+            let (gpu_mesh, mesh_id) = match grass_lod {
                 GrassLOD::Low => (&gpu_mesh_low, lod.mesh_handle.clone().unwrap().id()),
                 GrassLOD::High => (&gpu_mesh_high, mesh_instance.mesh_asset_id),
             };
@@ -160,6 +160,7 @@ impl<P: PhaseItem> RenderCommand<P> for DrawGrassInstanced {
                     let index_buffer_slice = ma.mesh_index_slice(&mesh_id).unwrap();
 
                     pass.set_index_buffer(index_buffer_slice.buffer.slice(..), 0, *index_format);
+
                     pass.draw_indexed(
                         index_buffer_slice.range.start..(index_buffer_slice.range.start + count),
                         index_buffer_slice.range.start as i32,

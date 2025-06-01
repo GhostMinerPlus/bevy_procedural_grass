@@ -1,7 +1,7 @@
-use bevy::{prelude::*, render::view::NoFrustumCulling};
+use bevy::prelude::*;
 use bevy_procedural_grass::{
     bean::GrassMesh,
-    com::{Grass, GrassChunks, GrassColor, GrassLODMesh},
+    com::{Grass, GrassLODMesh},
     prelude::*,
 };
 
@@ -26,7 +26,6 @@ fn setup(
             MeshMaterial3d(materials.add(StandardMaterial {
                 base_color: Color::srgb(0.0, 0.05, 0.0),
                 reflectance: 0.0,
-
                 ..default()
             })),
             Transform::from_scale(Vec3::new(100.0, 3.0, 100.0)),
@@ -41,10 +40,6 @@ fn setup(
             ..default()
         },
         GrassLODMesh::new(meshes.add(GrassMesh::mesh(3))), // optional: enables LOD
-        NoFrustumCulling::default(),
-        Transform::IDENTITY,
-        GrassChunks::default(),
-        GrassColor::default(),
     ));
 
     commands.spawn((

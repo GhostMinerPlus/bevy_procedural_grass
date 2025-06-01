@@ -26,17 +26,17 @@ use crate::{
 use super::render_com::{BufferBindGroup, GrassBuffer, WindBuffer};
 
 pub(super) fn grass_queue(
-    opaque_3d_draw_functions: Res<DrawFunctions<Transparent3d>>,
+    views: Query<(&ExtractedView, &Msaa)>,
+    grass_set: Query<(Entity, &MainEntity), With<RenderGrassChunks>>,
+    mut phases: ResMut<ViewSortedRenderPhases<Transparent3d>>,
+    draw_functions: Res<DrawFunctions<Transparent3d>>,
     custom_pipeline: Res<GrassPipeline>,
     mut pipelines: ResMut<SpecializedMeshPipelines<GrassPipeline>>,
     pipeline_cache: Res<PipelineCache>,
     meshes: Res<RenderAssets<RenderMesh>>,
     render_mesh_instances: Res<RenderMeshInstances>,
-    views: Query<(&ExtractedView, &Msaa)>,
-    grass_set: Query<(Entity, &MainEntity), With<RenderGrassChunks>>,
-    mut phases: ResMut<ViewSortedRenderPhases<Transparent3d>>,
 ) {
-    let draw_custom = opaque_3d_draw_functions.read().id::<DrawGrass>();
+    let draw_custom = draw_functions.read().id::<DrawGrass>();
 
     for (view, msaa) in &views {
         if let Some(transparent_phase) = phases.get_mut(&view.retained_view_entity) {

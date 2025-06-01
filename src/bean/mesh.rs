@@ -1,5 +1,7 @@
 use bevy::render::{
-    mesh::{Indices, Mesh}, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology
+    mesh::{Indices, Mesh},
+    render_asset::RenderAssetUsages,
+    render_resource::PrimitiveTopology,
 };
 
 pub struct GrassMesh;

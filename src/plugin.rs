@@ -1,8 +1,10 @@
 use bevy::{
-    core_pipeline::core_3d::Transparent3d, prelude::*, render::{
+    core_pipeline::core_3d::Transparent3d,
+    prelude::*,
+    render::{
         render_phase::AddRenderCommand, render_resource::SpecializedMeshPipelines, Render,
         RenderApp, RenderSet,
-    }
+    },
 };
 
 use crate::{command::DrawGrass, pipeline::GrassPipeline};
